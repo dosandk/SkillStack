@@ -75,5 +75,3 @@ Critical production bug that cannot wait for the next release cycle.
 
 - Who resolves merge conflicts?  
   ⚠️ The author of the PR being merged.
-
-some changes
