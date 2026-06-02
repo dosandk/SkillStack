@@ -1,5 +1,6 @@
 #!/bin/sh
 MSG=$(grep -v '^#' "$1" | grep -v '^[[:space:]]*$' | head -1)
-echo "DEBUG MSG: '$MSG'" >> /tmp/commitlint-debug.log
-echo "$MSG" | npx --no -- commitlint >> /tmp/commitlint-debug.log 2>&1
-echo "EXIT: $?" >> /tmp/commitlint-debug.log
+if [ -z "$MSG" ]; then
+  exit 0
+fi
+echo "$MSG" | npx --no -- commitlint
