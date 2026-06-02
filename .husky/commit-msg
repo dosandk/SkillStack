@@ -1,6 +1,9 @@
 #!/bin/sh
+
+# NOTE: remove all comments from git message
 MSG=$(grep -v '^#' "$1" | grep -v '^[[:space:]]*$' | head -1)
 if [ -z "$MSG" ]; then
   exit 0
 fi
+
 echo "$MSG" | npx --no -- commitlint
