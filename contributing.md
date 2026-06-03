@@ -54,6 +54,23 @@ Critical production bug that cannot wait for the next release cycle.
 
 ---
 
+### Github issue labels
+
+Issues must have **one** type label so automation (`.cursor/skills/implement-issue`) can pick the correct branch and commit type. If several apply, priority is: `hotfix` > `bug` > `enhancement` > `documentation`.
+
+| Label           | Use for                         | Branch type   | Base branch |
+| --------------- | ------------------------------- | ------------- | ----------- |
+| `enhancement`   | New feature or improvement      | `feature/...` | `develop`   |
+| `bug`           | Non-production defect           | `feature/...` | `develop`   |
+| `documentation` | Docs-only change                | `feature/...` | `develop`   |
+| `hotfix`        | Critical production fix         | `hotfix/...`  | `main`      |
+
+Branch naming: `feature/{issue-number}-{slug}` or `hotfix/{issue-number}-{slug}` (see short-lived branch types above).
+
+Create these labels in the GitHub repository if they are missing (`enhancement`, `bug`, `documentation`, `hotfix`).
+
+---
+
 ## Naming rules
 
 ### Pull request rules
