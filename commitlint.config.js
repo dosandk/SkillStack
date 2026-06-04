@@ -29,5 +29,5 @@ export default {
     'footer-leading-blank': [1, 'always'],
     'footer-max-line-length': [2, 'always', 72]
   },
-  helpUrl: ''
+  helpUrl: 'https://github.com/dosandk/SkillStack?tab=contributing-ov-file'
 };

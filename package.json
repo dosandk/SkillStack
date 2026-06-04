@@ -1,28 +1,47 @@
 {
   "name": "skillstack",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo 'this is tests result'",
     "pre-commit": "lint-staged",
     "pre-push": "npm run test",
-    "lint:prettier": "prettier ./client/src --write",
+    "lint:prettier": "prettier ./src --write",
     "lint:editorconfig": "echo 'run lint for editorconfig'",
     "lint:eslint": "echo 'run lint for eslint'",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
   "devDependencies": {
     "@commitlint/cli": "^21.0.2",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^10.4.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
-    "prettier": "3.8.3"
+    "prettier": "3.8.3",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.59.2",
+    "vite": "^8.0.12"
   },
   "lint-staged": {
     "src/**/*.{js,ts,jsx,tsx}": [
