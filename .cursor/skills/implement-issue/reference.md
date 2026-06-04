@@ -2,17 +2,17 @@
 
 ## GitHub MCP
 
-| Item | Value |
-|------|--------|
-| Config file | `.cursor/mcp.json` |
-| Auth | `GITHUB_TOKEN` env var |
+| Item        | Value                  |
+| ----------- | ---------------------- |
+| Config file | `.cursor/mcp.json`     |
+| Auth        | `GITHUB_TOKEN` env var |
 
 ## Issue URL parsing
 
-| Input | Parsed fields |
-|-------|----------------|
-| `https://github.com/dosandk/SkillStack/issues/42` | owner=`dosandk`, repo=`SkillStack`, number=`42` |
-| `github.com/foo/bar/issues/7#issuecomment-1` | owner=`foo`, repo=`bar`, number=`7` (ignore fragment) |
+| Input                                             | Parsed fields                                         |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| `https://github.com/dosandk/SkillStack/issues/42` | owner=`dosandk`, repo=`SkillStack`, number=`42`       |
+| `github.com/foo/bar/issues/7#issuecomment-1`      | owner=`foo`, repo=`bar`, number=`7` (ignore fragment) |
 
 Regex: `github\.com/([^/]+)/([^/]+)/issues/(\d+)`
 
@@ -20,12 +20,12 @@ Regex: `github\.com/([^/]+)/([^/]+)/issues/(\d+)`
 
 Every issue must have at least one label from this table. See `contributing.md` (Issue labels).
 
-| Label | Task kind | Branch prefix | Branch example | Base branch | Commit type | PR checkbox |
-|-------|-----------|---------------|----------------|-------------|-------------|-------------|
-| `hotfix` | production fix | `hotfix` | `hotfix/99-payment-crash` | `main` | `fix` | Bug fix |
-| `bug` | fix (non-prod) | `feature` | `feature/12-login-error` | `develop` | `fix` | Bug fix |
-| `enhancement` | feature | `feature` | `feature/42-user-login` | `develop` | `feat` | New feature |
-| `documentation` | docs | `feature` | `feature/3-update-readme` | `develop` | `docs` | Docs update |
+| Label           | Task kind      | Branch prefix | Branch example            | Base branch | Commit type | PR checkbox |
+| --------------- | -------------- | ------------- | ------------------------- | ----------- | ----------- | ----------- |
+| `hotfix`        | production fix | `hotfix`      | `hotfix/99-payment-crash` | `main`      | `fix`       | Bug fix     |
+| `bug`           | fix (non-prod) | `feature`     | `feature/12-login-error`  | `develop`   | `fix`       | Bug fix     |
+| `enhancement`   | feature        | `feature`     | `feature/42-user-login`   | `develop`   | `feat`      | New feature |
+| `documentation` | docs           | `feature`     | `feature/3-update-readme` | `develop`   | `docs`      | Docs update |
 
 **Branch naming:** `{prefix}/{issue_number}-{slug}`
 
@@ -44,9 +44,9 @@ From issue **title**:
 5. Trim leading/trailing hyphens
 6. Truncate to 40 characters
 
-| Title | Slug |
-|-------|------|
-| `Init dev env` | `init-dev-env` |
+| Title                   | Slug                |
+| ----------------------- | ------------------- |
+| `Init dev env`          | `init-dev-env`      |
 | `Fix: Payment crash!!!` | `fix-payment-crash` |
 
 ## `issue_read` calls

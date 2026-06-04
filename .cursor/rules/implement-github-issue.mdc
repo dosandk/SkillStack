@@ -8,7 +8,8 @@ alwaysApply: false
 
 # GitHub issue implementation
 
-If the message contains a link matching `github.com/{owner}/{repo}/issues/{number}` or the user asks to implement/fix/complete a GitHub issue or ticket:
+If the message contains a link matching `github.com/{owner}/{repo}/issues/{number}` 
+or the user asks to implement/fix/complete a GitHub issue or ticket:
 
 1. Read and follow [implement-issue skill](../skills/implement-issue/SKILL.md).
 2. Use GitHub MCP server `project-0-SkillStack-github` for `issue_read` and `create_pull_request`.

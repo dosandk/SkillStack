@@ -20,7 +20,8 @@ Quick reference tables: [reference.md](reference.md).
 ## Hard rules
 
 - **GitHub MCP first** for read and PR create. Config: `.cursor/mcp.json`. Use `gh` only if MCP is unavailable.
-- **Never guess issue type** — classification comes from labels only (see reference.md). If no recognized label, stop and ask the user to add one.
+- **Never guess issue type** — classification comes from labels only (see reference.md). If no recognized label,
+  stop and ask the user to add one.
 - **Never commit** without following [git-commit skill](../git-commit/SKILL.md) and explicit user confirmation.
 - **Never** run `git commit --amend`, `git push --force`, or change `git config`.
 - **Never** stage or commit `.env`, credentials, secrets, or private keys.
@@ -42,16 +43,17 @@ Extract from URLs like `https://github.com/{owner}/{repo}/issues/{number}`:
 
 - `owner`, `repo`, `issue_number` (integer)
 
-If the user gives only `#N` or `owner/repo#N`, resolve against the current git remote (`git remote get-url origin`) when possible.
+If the user gives only `#N` or `owner/repo#N`, resolve against the current git remote (`git remote get-url origin`)
+when possible.
 
 ### 2. Read issue (GitHub MCP)
 
 Call `issue_read` on server in parallel:
 
-| Call | method |
-|------|--------|
-| Details | `get` |
-| Labels | `get_labels` |
+| Call       | method         |
+| ---------- | -------------- |
+| Details    | `get`          |
+| Labels     | `get_labels`   |
 | Discussion | `get_comments` |
 
 Required arguments: `owner`, `repo`, `issue_number`.
@@ -124,13 +126,13 @@ git push -u origin HEAD
 
 Call `create_pull_request`
 
-| Field | Value |
-|-------|--------|
-| `owner`, `repo` | from URL |
-| `title` | same as commit header |
-| `head` | branch name (e.g. `feature/1-init-deve-env`) |
-| `base` | `develop` or `main` per classification |
-| `body` | filled PR template (below) |
+| Field           | Value                                        |
+| --------------- | -------------------------------------------- |
+| `owner`, `repo` | from URL                                     |
+| `title`         | same as commit header                        |
+| `head`          | branch name (e.g. `feature/1-init-deve-env`) |
+| `base`          | `develop` or `main` per classification       |
+| `body`          | filled PR template (below)                   |
 
 **PR body template** (from `.github/PULL_REQUEST_TEMPLATE.md`):
 
@@ -173,18 +175,18 @@ Return the PR URL to the user.
 
 ## MCP tool summary
 
-| Step | Tool | 
-|------|------|
-| Read issue | `issue_read` |
-| Open PR | `create_pull_request` |
+| Step       | Tool                  |
+| ---------- | --------------------- |
+| Read issue | `issue_read`          |
+| Open PR    | `create_pull_request` |
 
 ## Hook failures
 
-| Failure | Action |
-|---------|--------|
-| `pre-push` / tests | Fix code, re-run tests, push again |
+| Failure                   | Action                                                              |
+| ------------------------- | ------------------------------------------------------------------- |
+| `pre-push` / tests        | Fix code, re-run tests, push again                                  |
 | `commit-msg` / commitlint | Fix message via git-commit workflow; new commit after user confirms |
-| MCP auth error | Verify `GITHUB_TOKEN`; reload MCP in Cursor settings |
+| MCP auth error            | Verify `GITHUB_TOKEN`; reload MCP in Cursor settings                |
 
 ## Out of scope (v1)
 

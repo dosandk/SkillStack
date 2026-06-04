@@ -5,6 +5,15 @@
       "headers": {
         "Authorization": "Bearer ${env:GITHUB_TOKEN}"
       }
+    },
+    "eleks-ui-loc": {
+      "command": "eleks-ui",
+      "args": [
+        "start-mcp"
+      ],
+      "env": {
+        "FIGMA_ACCESS_TOKEN": "${env:FIGMA_ACCESS_TOKEN}"
+      }
     }
   }
 }
