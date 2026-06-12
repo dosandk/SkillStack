@@ -1,14 +1,19 @@
 ---
-name: eleks-ui-design-system
-description: Default design system for this project. Use whenever creating,
-  editing, or refactoring any React component, page, form, layout, or view — even
-  if the user does not explicitly mention ELEKS UI. All UI code in this project must follow ELEKS UI conventions.
+name: eleks-ui
+description: >
+  Provides ELEKS UI conventions for React UI work in this project. Applies when
+  creating, editing, or refactoring components, pages, forms, layouts, or views,
+  including when the user does not mention ELEKS UI. All UI code must follow
+  ELEKS UI import, discovery, and styling rules.
 ---
 
 # ELEKS UI — Default Design System
 
 This project uses **ELEKS UI** as its design system. Every React component must be built on top of it.
-These rules apply by default whenever you write or modify UI code — you do not need to be asked to use ELEKS UI.
+These rules apply by default whenever UI code is written or modified — ELEKS UI does not need to be requested explicitly.
+
+**MCP order:** load this skill first for project-specific rules (imports, local overrides, styling).
+Then follow eleks-ui MCP `serverUseInstructions` for tool calls, Figma workflows, and component docs.
 
 ## Import Rules (CRITICAL)
 
@@ -34,16 +39,7 @@ If the **eleks-ui MCP server** is configured, use it as the primary discovery an
 documentation source — it has its own detailed instructions for tool usage, Figma workflows, and component lookup.
 Follow those MCP instructions for discovery and docs, then return here for local override and styling rules.
 
-If the MCP is **not** available, browse the local component files at `src/components/eleks-ui/components`:
-
-| Category     | Path            | Examples                                                                       |
-| ------------ | --------------- | ------------------------------------------------------------------------------ |
-| Core         | `core/`         | Button, TextField, Alert, Dialog, Select, Table, Tabs, Accordion, Autocomplete |
-| Custom       | `custom/`       | EmptyState, FileUpload, Heading, TransferList                                  |
-| X-Components | `x-components/` | DataGrid, Charts, DateTime pickers, TreeView                                   |
-
-Each component directory contains an `index.tsx` with TypeScript interfaces and props.
-The barrel export at `src/components/eleks-ui/components/index.tsx` lists everything available.
+If the MCP is **not** available, browse the local component files — see [reference.md](reference.md).
 
 ## Local Customizations
 
@@ -66,8 +62,35 @@ Users may modify standard ELEKS UI components or create entirely new ones. The l
 ## Workflow
 
 1. **Discover** — if the MCP is available, follow its instructions to find and get docs for components.
-   Otherwise browse `src/components/eleks-ui/components` and read `index.tsx` files directly.
+   Otherwise browse `src/components/eleks-ui/components` per [reference.md](reference.md).
 2. **Check for local overrides** — read the component's `index.tsx` under `src/components/eleks-ui/components`
    to see if it was customized or if the component is user-created. Local files override MCP docs where they conflict.
 3. **Implement** — write code using `@eleks-ui/components` and `@eleks-ui/theme` imports.
-4. **Missing component** — if a component doesn't exist in MCP results or local files, inform the user before reaching for alternatives.
+4. **Missing component** — if a component doesn't exist in MCP results or local files, stop.
+   Do not substitute `@mui/material`, antd, or other UI libraries.
+   State in the response: `BLOCKED: <component-name> — not found in ELEKS UI (MCP or local src/components/eleks-ui/components)`.
+
+## Example
+
+**Request:** "Add a login form with email, password, and submit button."
+
+1. MCP available → `search_components` with query `login form` or `text field`;
+   `get_component_docs_batch` for `TextField`, `Button`.
+2. Read `src/components/eleks-ui/components/core/TextField/index.tsx` and `core/Button/index.tsx` for local overrides.
+3. Implement:
+
+```tsx
+import { Box, Button, TextField } from '@eleks-ui/components';
+```
+
+4. Style with `sx` and theme tokens; no `@mui/material` imports.
+
+## Quality Checklist
+
+Before marking UI work complete:
+
+- [ ] Imports from `@eleks-ui/components` and `@eleks-ui/theme` only (icons from `@mui/icons-material`)
+- [ ] No `@mui/material`, antd, chakra, or other third-party UI component libraries
+- [ ] Local `index.tsx` checked for customizations when MCP docs exist
+- [ ] Styles use `sx` and design-system tokens from `@eleks-ui/theme`
+- [ ] Existing ELEKS UI component reused instead of a custom rebuild where possible
