@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "es2023",
+    "module": "esnext",
+    "skipLibCheck": true,
+    /* Bundler mode — tsx honours this at runtime for the server too */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true,
+    /* Single source of truth for cross-folder path aliases.
+       Without baseUrl (deprecated in TS 6), these resolve relative to this file. */
+    "paths": {
+      "@eleks-ui/components": [
+        "./client/src/components/eleks-ui/components/index.tsx"
+      ],
+      "@eleks-ui/theme": ["./client/src/components/eleks-ui/theme/index.tsx"],
+      "@shared": ["./shared/src/index.ts"],
+      "@shared/*": ["./shared/src/*"],
+      "@db": ["./db/src/index.ts"],
+      "@db/*": ["./db/src/*"]
+    }
+  }
+}

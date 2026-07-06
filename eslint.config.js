@@ -16,7 +16,15 @@ export default defineConfig([
       reactRefresh.configs.vite
     ],
     languageOptions: {
-      globals: globals.browser
+      globals: { ...globals.browser, ...globals.node }
+    },
+    rules: {
+      // Allow intentionally-unused args/vars prefixed with `_`
+      // (e.g. the 4-arg Express error handler needs `next` present).
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }
+      ]
     }
   }
 ]);
