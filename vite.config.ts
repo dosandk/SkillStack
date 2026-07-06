@@ -10,17 +10,33 @@ const __dirname = dirname(__filename);
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  // The React app lives in client/; everything below is resolved from repo root.
+  root: path.resolve(__dirname, 'client'),
+  build: {
+    outDir: path.resolve(__dirname, 'dist'),
+    emptyOutDir: true
+  },
   resolve: {
     alias: {
       '@eleks-ui/components': path.resolve(
         __dirname,
-        'src/components/eleks-ui/components'
+        'client/src/components/eleks-ui/components'
       ),
       '@eleks-ui/theme': path.resolve(
         __dirname,
-        'src/components/eleks-ui/theme'
-      )
+        'client/src/components/eleks-ui/theme'
+      ),
+      // Shared zod schemas + inferred types (browser-safe: no fs access).
+      '@shared': path.resolve(__dirname, 'shared/src')
+    }
+  },
+  server: {
+    // Forward API calls to the Express server during development.
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
     }
   }
 });
