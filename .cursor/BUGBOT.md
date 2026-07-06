@@ -2,12 +2,12 @@
 
 ## Project context
 
-- React 19 + TypeScript + Vite application.
+- Single-package monorepo: `client/` (React 19 + TypeScript + Vite), `server/` (Express), `shared/` (Zod schemas + types), `db/` (markdown content store).
 - UI must use the **eleks-ui** design system: `@eleks-ui/components`, `@eleks-ui/theme`.
 - Icons may use `@mui/icons-material` only.
-- Component library lives under `src/components/eleks-ui/`.
-- Path aliases: `@eleks-ui/components`, `@eleks-ui/theme` (see `vite.config.ts`).
-- Husky: pre-commit runs lint-staged on `src/**/*.{js,ts,jsx,tsx}`; commit-msg runs commitlint; pre-push runs `npm test` (currently a placeholder).
+- Component library lives under `client/src/components/eleks-ui/`.
+- Path aliases: `@eleks-ui/components`, `@eleks-ui/theme`, `@shared`, `@db` (see `tsconfig.base.json` / `vite.config.ts`).
+- Husky: pre-commit runs lint-staged on `{client,server,shared,db}/**/*.{js,ts,jsx,tsx}`; commit-msg runs commitlint; pre-push runs `npm test` (currently a placeholder).
 
 ## Severity policy
 
@@ -18,13 +18,13 @@
 
 ## ELEKS UI
 
-For files matching `src/**/*.{ts,tsx}` outside `src/components/eleks-ui/`:
+For files matching `client/src/**/*.{ts,tsx}` outside `client/src/components/eleks-ui/`:
 
 If a changed file imports UI components from `@mui/material`, `@material-ui/core`, `antd`, `chakra-ui`, or similar instead of `@eleks-ui/components`, then:
 - Add a **blocking** Bug titled "Use eleks-ui instead of raw MUI/third-party UI"
 - Body: "Import components from `@eleks-ui/components` and theme from `@eleks-ui/theme`. Icons may use `@mui/icons-material`. Do not import from `@mui/material` for components available in eleks-ui."
 
-If a changed file under `src/` (excluding `src/components/eleks-ui/`) uses a relative import into `src/components/eleks-ui/components/**` instead of the `@eleks-ui/*` aliases, then:
+If a changed file under `client/src/` (excluding `client/src/components/eleks-ui/`) uses a relative import into `client/src/components/eleks-ui/components/**` instead of the `@eleks-ui/*` aliases, then:
 - Add a **non-blocking** Bug titled "Use @eleks-ui path aliases"
 - Body: "Use `@eleks-ui/components` / `@eleks-ui/theme` per project conventions."
 
@@ -32,13 +32,13 @@ If a changed React component adds significant custom styling via inline `style={
 - Add a **non-blocking** Bug titled "Prefer sx and theme tokens"
 - Body: "Use the `sx` prop and design tokens from `@eleks-ui/theme` for colors, typography, and spacing."
 
-When reviewing changes under `src/components/eleks-ui/components/**`, treat each component's local `index.tsx` as the source of truth if it differs from generic MUI patterns.
+When reviewing changes under `client/src/components/eleks-ui/components/**`, treat each component's local `index.tsx` as the source of truth if it differs from generic MUI patterns.
 
 ---
 
 ## TypeScript
 
-For files matching `src/**/*.{ts,tsx}`:
+For files matching `client/src/**/*.{ts,tsx}`:
 
 If a changed production file introduces `any` (not in `*.d.ts` or obvious test doubles), then:
 - Add a **blocking** Bug titled "Avoid any in production code"
@@ -64,7 +64,7 @@ If a `NOTE:` comment links an issue, the URL must be a full `https://` link to a
 
 ## Imports
 
-For files matching `src/**/*.{js,jsx,ts,tsx}`:
+For files matching `{client,server,shared,db}/**/*.{js,jsx,ts,tsx}`:
 
 If imports in a changed file violate this order (no blank line between groups): (1) Node built-ins, (2) external npm packages, (3) project/aliases, (4) styles last, then:
 - Add a **non-blocking** Bug titled "Import order"
@@ -74,7 +74,7 @@ If imports in a changed file violate this order (no blank line between groups): 
 
 ## React
 
-For files matching `src/**/*.{tsx,jsx}`:
+For files matching `client/src/**/*.{tsx,jsx}`:
 
 If a changed file uses deprecated React lifecycle methods (`componentWillMount`, `componentWillReceiveProps`, `componentWillUpdate`), then:
 - Add a **blocking** Bug titled "Deprecated React lifecycle"
@@ -106,7 +106,7 @@ If the PR description does not reference a linked issue (`Closes #`, `Fixes #`, 
 - Add a **non-blocking** Bug titled "Missing linked ticket"
 - Body: "PR template expects `Closes #<number>`. Link the GitHub issue."
 
-If the PR modifies user-facing UI under `src/` but the PR description has no "How to test" steps, then:
+If the PR modifies user-facing UI under `client/src/` but the PR description has no "How to test" steps, then:
 - Add a **non-blocking** Bug titled "Missing manual test steps"
 - Body: "Add step-by-step verification instructions in the PR body."
 
@@ -138,4 +138,4 @@ If the PR adds secrets, API keys, or `.env` values in tracked files, then:
 - Missing unit tests when `npm test` is still a placeholder and no test files exist for the area.
 - Changes confined to `.cursor/`, `readme.md`, or `CLAUDE.md` unless they introduce incorrect commands or security issues.
 - Icons imported from `@mui/icons-material` (allowed).
-- MUI imports inside `src/components/eleks-ui/` that intentionally wrap or extend MUI primitives.
+- MUI imports inside `client/src/components/eleks-ui/` that intentionally wrap or extend MUI primitives.
