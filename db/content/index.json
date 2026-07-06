@@ -1,0 +1,26 @@
+{
+  "skill": {
+    "find-skills": "skills/find-skills.md",
+    "frontend-design": "skills/frontend-design.md",
+    "systematic-debugging": "skills/systematic-debugging.md",
+    "tdd": "skills/tdd.md"
+  },
+  "rule": {
+    "component-naming": "rules/component-naming.md",
+    "js-import-order": "rules/js-import-order.md",
+    "no-any": "rules/no-any.md",
+    "react-hooks": "rules/react-hooks.md"
+  },
+  "mcp": {
+    "browser": "mcps/browser.md",
+    "filesystem": "mcps/filesystem.md",
+    "github": "mcps/github.md",
+    "supabase": "mcps/supabase.md"
+  },
+  "agent": {
+    "code-reviewer": "agents/code-reviewer.md",
+    "pr-writer": "agents/pr-writer.md",
+    "test-generator": "agents/test-generator.md",
+    "triage": "agents/triage.md"
+  }
+}
