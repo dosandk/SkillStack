@@ -18,6 +18,7 @@ import {
 } from '@eleks-ui/components';
 import { useEleksUITheme } from '@eleks-ui/theme';
 
+import { AuthControls } from './features/auth/AuthControls';
 import { ContentList } from './features/content/ContentList';
 
 export type SortTab = 'all-time' | 'hot' | 'trending';
@@ -39,10 +40,11 @@ function App() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
         <Typography variant="h4" sx={{ flexGrow: 1 }}>
           SkillStack
         </Typography>
+        <AuthControls />
         <IconButton onClick={toggleTheme} aria-label="toggle theme">
           {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
         </IconButton>
