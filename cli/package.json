@@ -1,0 +1,33 @@
+{
+  "name": "skillstack-cli",
+  "version": "0.0.2",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "module",
+  "bin": {
+    "skillstack-cli": "./dist/bin.js"
+  },
+  "main": "./dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "cross-env NODE_ENV=development tsup --watch"
+  },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.1.0",
+    "cross-env": "^10.1.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
