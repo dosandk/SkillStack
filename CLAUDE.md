@@ -15,9 +15,10 @@ prototype for a course on using Claude Code / Cursor well. It has three moving p
    (validation runs via an LLM through the Anthropic SDK), and install telemetry. Firestore stores only
    metadata + the GitHub commit hash, never the skill files themselves.
 
-Full requirements/spec: `wiki/project_description.md`. Feature catalogue and per-feature ticket breakdown:
-`wiki/features/_index.md` and `wiki/features/*.md` (tickets live in `wiki/tickets/`). Check these before
-starting non-trivial work to see whether a feature is `done`/`planned` and what its acceptance criteria are.
+Full requirements/spec: `wiki/project_description.md`. Story catalogue and per-story task breakdown:
+`wiki/stories/_index.md` and `wiki/stories/*.md` (module-scoped tasks live in `wiki/tasks/`). Check these
+before starting non-trivial work to see whether a story is `done`/`planned`, its E2E test scenarios, and
+the unit/integration test requirements on its tasks.
 
 ## Monorepo layout
 
@@ -26,13 +27,11 @@ cross-folder imports go through the TS path aliases in `tsconfig.base.json`).
 
 | Folder       | Responsibility                                                                                                                                                                             |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `client/`    | React 19 + Vite front end. Vite `root` is `client/`, but `resolve.alias` and `tsconfig` paths reach into `shared/` and `db/` at the repo root.                                             |
-| `functions/` | Firebase Cloud Functions — the target backend that will replace `/server`. Currently minimal.                                                                                              |
-| `server/`    | **Legacy** Express API being deleted in favor of `functions/`. Don't build new features here.                                                                                              |
+| `client/`    | React 19 + Vite front end. Vite `root` is `client/`, but `resolve.alias` and `tsconfig` paths reach into `shared/` at the repo root.                                                       |
+| `functions/` | Firebase Cloud Functions — the backend. Currently minimal.                                                                                                                                 |
 | `shared/`    | Zod schemas + inferred TS types (`shared/src/schemas/`), the single source of truth consumed by both client and backend. Browser-safe (no `fs` access) so it can be Vite-bundled directly. |
-| `db/`        | **Legacy** markdown-file content store (`db/content/`) being replaced by Firestore. Don't build new features here.                                                                         |
 | `cli/`       | Separate npm package (`skillstack-cli`), built with `tsup`. Entry points: `src/bin.ts` (the `skillstack` binary via commander) and `src/index.ts`.                                         |
-| `wiki/`      | Product spec, feature catalogue, tickets, and templates for both — no ADRs currently checked in.                                                                                           |
+| `wiki/`      | Product spec (`project_description.md`), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both — no ADRs currently checked in. |
 | `.cursor/`   | Cursor rules (`rules/*.mdc`) and skills (`skills/*/SKILL.md`) that apply across the repo — see "Cursor rules & skills" below.                                                              |
 
 ## Commands
@@ -71,16 +70,15 @@ is present; check before writing tests.
 
 ## Architecture notes
 
-- **Path aliases** are defined once in `tsconfig.base.json` (`@shared`, `@shared/*`, `@db`, `@db/*`,
-  `@eleks-ui/components`, `@eleks-ui/theme`) and mirrored in `vite.config.ts`'s `resolve.alias` for the client
-  build. If you add a new cross-folder alias, update both places.
+- **Path aliases** are defined once in `tsconfig.base.json` (`@shared`, `@shared/*`, `@eleks-ui/components`,
+  `@eleks-ui/theme`) and mirrored in `vite.config.ts`'s `resolve.alias` for the client build. If you add a new
+  cross-folder alias, update both places.
 - **Client structure**: `client/src/features/<feature>/` holds feature-scoped components + hooks (e.g.
   `features/auth/AuthProvider.tsx` + `useAuth.ts`, `features/content/ContentList.tsx` + `useContent.ts`).
   `client/src/components/eleks-ui/` holds the local ELEKS UI component/theme source — see below.
 - **`shared/src`** defines Zod schemas (e.g. `schemas/content.ts`) and infers TS types from them; both client
   and backend should import types from here rather than redefining shapes.
-- The Express server (`server/`) proxies through Vite's dev server at `/api` (see `vite.config.ts`), but is
-  being phased out — new backend work belongs in `functions/` against Firestore, not `server/`.
+- Backend work belongs in `functions/` against Firestore.
 
 ## UI conventions (ELEKS UI) — required for all React work
 
