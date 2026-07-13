@@ -6,19 +6,17 @@ for a course on using Claude Code / Cursor capabilities well.
 ## Monorepo layout (single root `package.json`)
 
 The whole repo (except CLI) is one npm package (no workspaces). Folders are separated by responsibility,
-and cross-folder imports go through TypeScript path aliases (`@shared`, `@db`, `@eleks-ui/*`).
+and cross-folder imports go through TypeScript path aliases (`@shared`, `@eleks-ui/*`).
 
 | Folder       | Responsibility                                                                                                                                                                                 |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `client/`    | React 19 + Vite front end. Vite `root` is `client/`.                                                                                                                                           |
-| `functions/` | Firebase functions that will replace `/server` folder                                                                                                                                          |     |
-| `server/`    | Legacy Express API. To be deleted and replaced with firebase funtions. No need to explore this folder                                                                                          |
+| `functions/` | Firebase Cloud Functions — the backend.                                                                                                                                                        |
 | `shared/`    | Zod schemas + inferred TS types. Single source of truth, used by both sides. If both firebase functions and client can use those interfaces, we can keep it, otherwise - to be deleted as well |
-| `db/`        | Data-access layer + the markdown content itself under `db/content/`. To be deleted and replaced with firebase Firestore. No need to explore this folder                                        |
-| `wiki/`      | This documentation, ADRs, and the backlog.                                                                                                                                                     |
+| `wiki/`      | This documentation. `project_description.md` (this file), a story catalogue (`wiki/stories/` — end-to-end user stories, each with E2E test scenarios), module-scoped tasks (`wiki/tasks/` — frontend/backend/cli work items with unit/integration test requirements), and `wiki/templates/` for both. No ADRs or backlog currently checked in. |
 | `.cursor/`   | Cursor rules/skills applied across the repo.                                                                                                                                                   |
 
-Apart from that there is a `/cli` folder which is a seprate npm package that users use to install any skill from any Github repo using the console command like in [skills.sh](https://www.skills.sh/). For example: `npx skills add https://github.com/anthropics/skills --skill frontend-design`
+Apart from that there is a `/cli` folder which is a separate npm package that users use to install any skill from any Github repo using the console command like in [skills.sh](https://www.skills.sh/). For example: `npx skills add https://github.com/anthropics/skills --skill frontend-design`
 
 ## Existing features
 
