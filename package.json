@@ -7,7 +7,7 @@
     "test": "echo 'this is tests result'",
     "pre-commit": "lint-staged",
     "pre-push": "npm run test",
-    "lint:prettier": "prettier client/src --write",
+    "lint:prettier": "prettier \"client/src\" \"server/src\" \"shared/src\" \"db/src\" --write",
     "lint:editorconfig": "echo 'run lint for editorconfig'",
     "lint:eslint": "echo 'run lint for eslint'",
     "prepare": "husky",
