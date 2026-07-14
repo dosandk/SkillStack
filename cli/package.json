@@ -17,6 +17,8 @@
   ],
   "scripts": {
     "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "build": "tsup",
     "dev": "cross-env NODE_ENV=development tsup --watch"
   },
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "cross-env": "^10.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

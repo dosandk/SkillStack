@@ -58,16 +58,36 @@ Critical production bug that cannot wait for the next release cycle.
 
 Issues must have **one** type label so automation (`.cursor/skills/implement-issue`) can pick the correct branch and commit type. If several apply, priority is: `hotfix` > `bug` > `enhancement` > `documentation`.
 
-| Label           | Use for                         | Branch type   | Base branch |
-| --------------- | ------------------------------- | ------------- | ----------- |
-| `enhancement`   | New feature or improvement      | `feature/...` | `develop`   |
-| `bug`           | Non-production defect           | `feature/...` | `develop`   |
-| `documentation` | Docs-only change                | `feature/...` | `develop`   |
-| `hotfix`        | Critical production fix         | `hotfix/...`  | `main`      |
+| Label           | Use for                    | Branch type   | Base branch |
+| --------------- | -------------------------- | ------------- | ----------- |
+| `enhancement`   | New feature or improvement | `feature/...` | `develop`   |
+| `bug`           | Non-production defect      | `feature/...` | `develop`   |
+| `documentation` | Docs-only change           | `feature/...` | `develop`   |
+| `hotfix`        | Critical production fix    | `hotfix/...`  | `main`      |
 
 Branch naming: `feature/{issue-number}-{slug}` or `hotfix/{issue-number}-{slug}` (see short-lived branch types above).
 
 Create these labels in the GitHub repository if they are missing (`enhancement`, `bug`, `documentation`, `hotfix`).
+
+---
+
+## Repository setup
+
+### Symlinks
+
+Shared agent settings live once under `.agents/` and are exposed to each agent
+(`.claude/`, `.cursor/`, …) via symlinks. Enable symlink checkout after cloning,
+otherwise they appear as plain text files:
+
+```bash
+git config core.symlinks true   # this clone (or --global for all repos)
+```
+
+Or set it up front when cloning:
+
+```bash
+git clone -c core.symlinks=true <url>
+```
 
 ---
 

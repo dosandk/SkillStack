@@ -29,8 +29,8 @@ export function useContent(type: TypeFilter): ContentState {
 
     const fetches =
       type === 'all'
-        ? CONTENT_TYPES.map(t =>
-            fetch(`/api/${pluralOf(t)}`).then(res => {
+        ? CONTENT_TYPES.map(contentType =>
+            fetch(`/api/${pluralOf(contentType)}`).then(res => {
               if (!res.ok) throw new Error(`Request failed: ${res.status}`);
               return res.json() as Promise<ContentItem[]>;
             })

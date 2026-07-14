@@ -59,7 +59,7 @@ function App() {
         size="small"
         placeholder="Search by name, description, or tag…"
         value={searchQuery}
-        onChange={e => setSearchQuery(e.target.value)}
+        onChange={event => setSearchQuery(event.target.value)}
         sx={{ mb: 2 }}
       />
 
@@ -76,13 +76,13 @@ function App() {
         >
           All
         </Button>
-        {CONTENT_TYPES.map(t => (
+        {CONTENT_TYPES.map(contentType => (
           <Button
-            key={t}
-            variant={t === type ? 'contained' : 'outlined'}
-            onClick={() => setType(t)}
+            key={contentType}
+            variant={contentType === type ? 'contained' : 'outlined'}
+            onClick={() => setType(contentType)}
           >
-            {t}s
+            {contentType}s
           </Button>
         ))}
       </Stack>

@@ -29,14 +29,14 @@ export default defineConfig({
       // Shared zod schemas + inferred types (browser-safe: no fs access).
       '@shared': path.resolve(__dirname, 'shared/src')
     }
-  },
-  server: {
-    // Forward API calls to the Express server during development.
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true
-      }
-    }
   }
+  // server: {
+  //   // Forward API calls to the Express server during development.
+  //   proxy: {
+  //     '/api': {
+  //       target: 'http://localhost:3001',
+  //       changeOrigin: true
+  //     }
+  //   }
+  // }
 });

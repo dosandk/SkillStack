@@ -159,13 +159,13 @@ function filterItems(
   selectedTag: string | null,
   agentFilter: string | null
 ): ContentItem[] {
-  const q = searchQuery.toLowerCase().trim();
+  const query = searchQuery.toLowerCase().trim();
   return items.filter(item => {
-    if (q) {
+    if (query) {
       const hit =
-        item.name.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q) ||
-        item.tags.some(t => t.toLowerCase().includes(q));
+        item.name.toLowerCase().includes(query) ||
+        item.description.toLowerCase().includes(query) ||
+        item.tags.some(tag => tag.toLowerCase().includes(query));
       if (!hit) return false;
     }
     if (selectedTag && !item.tags.includes(selectedTag)) return false;
