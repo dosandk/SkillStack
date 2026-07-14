@@ -1,0 +1,104 @@
+---
+description: Test structure — describe wrapper, it blocks, 'should' naming, AAA
+globs: "**/*.spec.{ts,tsx}"
+alwaysApply: false
+---
+
+# Test conventions
+
+Structure every test the same way so specs read as behavior specifications:
+`describe` names the unit, each `it` states one expected behavior, and the body
+follows Arrange–Act–Assert.
+
+## Rule 1 — `describe` wrapper
+
+Every spec has a top-level `describe` that names the unit under test in domain
+language. Nested `describe` blocks are allowed to group scenarios. No test case
+lives outside a `describe`.
+
+```ts
+// ❌ BAD — generic label
+describe('pull', () => { ... });
+
+// ✅ GOOD — domain subject
+describe('Repository parsing', () => { ... });
+```
+
+## Rule 2 — `it` blocks only
+
+Test cases go inside `describe`, one per `it(...)`. 
+The bare vitest `test(...)` form outside a `describe` is not allowed.
+
+```ts
+// ❌ BAD — bare test(), no describe
+test('adds 1 + 2 to equal 3', () => { ... });
+
+// ✅ GOOD
+describe('sum', () => {
+  it('should add two numbers', () => { ... });
+});
+```
+
+## Rule 3 — `it` descriptions start with `should`
+
+Each `it` description begins with `should` followed by the expected behavior in
+domain terms — not a generic placeholder.
+
+```ts
+// ❌ BAD
+it('works correct #1', () => { ... });
+it('parses owner/repo short form', () => { ... });
+
+// ✅ GOOD
+it('should parse owner/repo short form', () => { ... });
+it('should throw on an unrecognizable reference', () => { ... });
+```
+
+## Rule 4 — Arrange–Act–Assert body
+
+The `it` body follows Arrange–Act–Assert, with one main assertion for the
+behavior under test. Split unrelated behaviors into separate `it` blocks.
+
+```ts
+it('should strip a trailing .git suffix', () => {
+  // Arrange
+  const repoUrl = 'https://github.com/dosandk/SkillStack.git';
+
+  // Act
+  const parsed = parseRepo(repoUrl);
+
+  // Assert
+  expect(parsed).toEqual({ owner: 'dosandk', repo: 'SkillStack', ref: undefined });
+});
+```
+
+## Rule 5 — Assert the specific error, not a bare `toThrow()`
+
+When testing that code throws, assert *which* error — a message substring, regex,
+or error type. A bare `toThrow()` passes on any error (including an unrelated
+`TypeError`), so it keeps the test green even when the code fails for the wrong
+reason. Match a stable part of the message, not the full string with dynamic bits.
+
+```ts
+// ❌ BAD — passes on any thrown error
+expect(() => parseRepo('not a repo')).toThrow();
+
+// ✅ GOOD — asserts the intended failure
+expect(() => parseRepo('not a repo')).toThrow(
+  'Could not parse repository reference'
+);
+```
+
+## Rule 6 — File placement
+
+Test files are `*.spec.ts` / `*.spec.tsx`, colocated next to the module under
+test (`pull.ts` → `pull.spec.ts` in the same folder).
+
+## Checklist
+
+- Top-level `describe` names the unit in domain language.
+- Every case is an `it` inside a `describe`; no bare `test(...)`.
+- Each `it` description starts with `should ` and states the behavior.
+- Body follows Arrange–Act–Assert with one main assertion.
+- Error assertions check the specific error (message/type), not a bare `toThrow()`.
+- `*.spec.ts(x)` colocated with the module under test.

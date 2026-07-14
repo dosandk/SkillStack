@@ -16,6 +16,7 @@
     "dist"
   ],
   "scripts": {
+    "test": "vitest",
     "build": "tsup",
     "dev": "cross-env NODE_ENV=development tsup --watch"
   },
@@ -28,6 +29,7 @@
     "@types/node": "^25.1.0",
     "cross-env": "^10.1.0",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

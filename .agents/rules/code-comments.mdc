@@ -1,11 +1,23 @@
 ---
-description: Code comment conventions — NOTE prefix, no how-it-works, nuances and issue links only
+description: Code comment conventions — English only, NOTE prefix, no how-it-works, nuances and issue links only
 alwaysApply: true
 ---
 
 # Code comments
 
 Code must be self-explanatory. Comments are for exceptions, not narration.
+
+## Language
+
+Every comment must be written in English — `//`, `/* */`, and doc comments alike.
+
+```ts
+// ❌ BAD — non-English comment
+// перевіряємо посилання
+
+// ✅ GOOD
+// NOTE: supported formats — full URL, .../tree/<branch>, short owner/repo
+```
 
 ## When to comment
 
@@ -52,3 +64,4 @@ Every comment starts with `NOTE:` (line, block, or doc comment):
 - Prefer no comment over a redundant one.
 - One `NOTE:` per comment; keep it to one or two sentences.
 - Issue links must be full URLs to an existing issue in the relevant library repo.
+- Comments are in English (see Language above).
