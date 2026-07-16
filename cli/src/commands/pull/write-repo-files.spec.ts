@@ -45,7 +45,7 @@ describe('writeRepoFiles', () => {
     expect(writeFileSyncMock).toHaveBeenCalledTimes(2);
     const [firstTarget, firstContent] = writeFileSyncMock.mock.calls[0];
     expect(firstTarget).toBe(join('/tmp/out', 'README.md'));
-    expect(firstContent.toString('utf8')).toBe('# Hello');
+    expect(firstContent.toString()).toBe('# Hello');
   });
 
   it('should create a directory for each downloaded dir', () => {
