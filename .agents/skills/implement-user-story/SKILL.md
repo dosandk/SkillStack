@@ -47,7 +47,7 @@ Read all spec files before touching the codebase.
 
 3. Produce an internal summary listing:
    - Story title and status
-   - Active domains: a subset of `{client, functions, cli, shared}`
+   - Active domains: a subset of `{client, functions, cli}`
    - All tasks and their modules
    - All E2E scenarios (numbered)
 
@@ -64,7 +64,6 @@ Determine active domains from Phase 1 (`domain:` field + task `module` columns):
 | `backend`       | `backend`           | See Backend targets   |
 | `frontend`      | `frontend`          | See Frontend targets  |
 | `cli`           | `cli`               | See CLI targets       |
-| `shared`        | any (always run if story touches more than one layer) | See Shared targets |
 
 ### Backend subagent targets
 
@@ -79,13 +78,8 @@ Determine active domains from Phase 1 (`domain:` field + task `module` columns):
 - API client classes and their method signatures (`client/src/`)
 - Feature page and panel components for the relevant feature domain
 - ELEKS UI component usage — local overrides in `client/src/components/eleks-ui/`
-- Zod validation schema patterns (`shared/src/schemas/` and local feature schemas)
+- Zod validation schemas in feature folders (`client/src/features/<feature>/`)
 - Test files — React Testing Library conventions, fixture patterns, mock setup
-
-### Shared subagent targets
-
-- Zod schemas in `shared/src/schemas/` and inferred TS types
-- Which client and backend files import from `@shared`
 
 ### CLI subagent targets
 
@@ -108,7 +102,7 @@ Using the Phase 1 requirements and Phase 2 exploration summaries, call the `Crea
 - **Files to modify** — existing entities, services, clients, modules, pages (with paths)
 - **Approach per layer** — one paragraph per active domain describing the implementation strategy
 - **Architectural decisions** — any non-obvious choices (e.g. where business logic lives, how errors surface)
-- **Implementation order** — the exact sequence across layers (backend → shared → frontend → CLI)
+- **Implementation order** — the exact sequence across layers (backend → frontend → CLI)
 
 Present the plan and wait. Do not proceed until the user explicitly approves (e.g. "approved", "looks good", "go ahead").
 
@@ -128,15 +122,9 @@ Follow the approved plan. Use the implementation order below for each active dom
 
 Run `cd functions && npm run build` after completing this layer. Fix all errors before starting the next layer.
 
-### Shared (`shared/`)
-
-1. Add or update Zod schemas in `shared/src/schemas/`
-2. Export inferred TS types — do not duplicate types already derivable from Zod
-
 ### Frontend (`client/`)
 
-1. Consume updated shared types (no re-declaration)
-2. Add Zod validation schema for any new form (in the feature folder or `shared/`)
+1. Add Zod validation schema for any new form in the feature folder (`client/src/features/<feature>/`)
 3. Add API client method to the relevant client class
 4. Add or update state hook / custom hook
 5. Identify ELEKS UI components to use — check local `client/src/components/eleks-ui/` first, then MCP docs

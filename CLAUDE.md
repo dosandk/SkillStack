@@ -22,17 +22,14 @@ the unit/integration test requirements on its tasks.
 
 ## Monorepo layout
 
-The root `package.json` covers everything **except `/cli`**, which is its own npm package (no npm workspaces —
-cross-folder imports go through the TS path aliases in `tsconfig.base.json`).
+The root `package.json` covers everything **except `/cli`**, which is its own npm package (no npm workspaces).
 
-| Folder       | Responsibility                                                                                                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `client/`    | React 19 + Vite front end. Vite `root` is `client/`, but `resolve.alias` and `tsconfig` paths reach into `shared/` at the repo root.                                                       |
-| `functions/` | Firebase Cloud Functions — the backend. Currently minimal.                                                                                                                                 |
-| `shared/`    | Zod schemas + inferred TS types (`shared/src/schemas/`), the single source of truth consumed by both client and backend. Browser-safe (no `fs` access) so it can be Vite-bundled directly. |
-| `cli/`       | Separate npm package (`skillstack-cli`), built with `tsup`. Entry points: `src/bin.ts` (the `skillstack` binary via commander) and `src/index.ts`.                                         |
-| `wiki/`      | Product spec (`project_description.md`), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both — no ADRs currently checked in. |
-| `.cursor/`   | Cursor rules (`rules/*.mdc`) and skills (`skills/*/SKILL.md`) that apply across the repo — see "Cursor rules & skills" below.                                                              |
+| Folder       | Responsibility                                                                                                                                                                                                                                              |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| `client/`    | React 19 + Vite front end. Vite `root` is `client/`.                                                                                                                                                                                                        |
+| `functions/` | Firebase Cloud Functions — the backend. TypeScript, compiled to `lib/` via `tsc`. Zod schemas for Firestore document shapes live here. Entry point: `src/index.ts`, compiled output: `lib/index.js`.                                                        |
+| `cli/`       | Separate npm package (`skillstack-cli`), built with `tsup`. Entry points: `src/bin.ts` (the `skillstack` binary via commander) and `src/index.ts`.                                                                                                          |
+| `wiki/`      | Product spec (`project_description.md`), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both — no ADRs currently checked in. |     |
 
 ## Commands
 
@@ -46,7 +43,7 @@ npm run emulators         # Firebase emulators (auth, functions, hosting)
 npm run build             # tsc typecheck + vite build for client, tsc build for server
 npm run typecheck         # tsc -p tsconfig.client.json && tsc -p tsconfig.server.json (no emit)
 npm run lint               # eslint .
-npm run lint:prettier      # prettier --write over client/server/shared/db src
+npm run lint:prettier      # prettier --write over client/src
 npm test                   # currently a stub — no real test suite is wired up yet
 ```
 
@@ -60,8 +57,10 @@ npm run dev     # tsup --watch, NODE_ENV=development
 Functions package (`cd functions`):
 
 ```bash
+npm run build   # tsc — compiles src/ to lib/
+npm run test:run  # vitest run — unit tests
 npm run serve   # firebase emulators:start --only functions
-npm run deploy  # firebase deploy --only functions
+npm run deploy  # firebase deploy --only functions (runs build first via predeploy)
 npm run logs    # firebase functions:log
 ```
 
@@ -70,68 +69,5 @@ is present; check before writing tests.
 
 ## Architecture notes
 
-- **Path aliases** are defined once in `tsconfig.base.json` (`@shared`, `@shared/*`, `@eleks-ui/components`,
-  `@eleks-ui/theme`) and mirrored in `vite.config.ts`'s `resolve.alias` for the client build. If you add a new
-  cross-folder alias, update both places.
-- **Client structure**: `client/src/features/<feature>/` holds feature-scoped components + hooks (e.g.
-  `features/auth/AuthProvider.tsx` + `useAuth.ts`, `features/content/ContentList.tsx` + `useContent.ts`).
-  `client/src/components/eleks-ui/` holds the local ELEKS UI component/theme source — see below.
-- **`shared/src`** defines Zod schemas (e.g. `schemas/content.ts`) and infers TS types from them; both client
-  and backend should import types from here rather than redefining shapes.
+- **Path aliases** (`@eleks-ui/components`, `@eleks-ui/theme`) are defined in `tsconfig.base.json` and mirrored in `vite.config.ts`'s `resolve.alias` for the client build. If you add a new alias, update both places.
 - Backend work belongs in `functions/` against Firestore.
-
-## UI conventions (ELEKS UI) — required for all React work
-
-This project uses **ELEKS UI**, not raw MUI, as its design system (full rules: `.cursor/skills/eleks-ui/SKILL.md`).
-
-- Import components from `@eleks-ui/components` and theme utilities from `@eleks-ui/theme`; icons still come
-  from `@mui/icons-material`.
-- **Never** import from `@mui/material`/`@material-ui/core` or other UI libraries for anything ELEKS UI already
-  provides.
-- Before building a component, check `client/src/components/eleks-ui/components/*/index.tsx` for local
-  overrides/customizations — local source is the source of truth over any MCP-provided docs when they conflict.
-- If a needed component doesn't exist in ELEKS UI (MCP or local), stop and say so explicitly rather than
-  substituting another library.
-
-## Code style
-
-- **Comments**: self-explanatory code by default. Only comment non-trivial nuances (workarounds, ordering
-  constraints, side effects) or to link a tracked upstream issue — every comment must start with `NOTE:`.
-  Never comment on _what_ code does.
-- **Import order**: built-in modules → external libraries → project/aliased imports → style imports, one blank
-  line between each group (see `.cursor/rules/js-import-order.mdc` for the full example).
-
-## Git workflow
-
-Simplified Git Flow (`contributing.md`) — two long-lived branches, PR-only, no direct pushes:
-
-- `main` — production, tagged on release. `develop` — staging integration branch.
-- `feature/{issue-number}-{slug}` off `develop`, squash-merged back, 1 reviewer minimum.
-- `hotfix/{issue-number}-{slug}` off `main`, back-merged to `develop`, 2-hour review SLA.
-- `release/{semver}` off `develop` for pre-release stabilization only.
-- GitHub issues need exactly one type label (`enhancement`, `bug`, `documentation`, `hotfix` — priority in that
-  order if multiple apply) to determine branch type/base.
-
-**Commits** follow Conventional Commits, enforced by commitlint + husky `commit-msg` hook
-(`commitlint.config.js`):
-
-- Allowed types: `feat`, `fix`, `docs` only (no `chore`/`refactor`/`style`/`test`, etc.).
-- Header (`type(scope): subject`) ≤ 50 chars total; subject lowercase, no trailing period.
-- Body/footer lines ≤ 72 chars, blank line before each.
-- PR titles mirror the commit header format.
-
-## Cursor rules & skills
-
-These live under `.cursor/` and several encode workflow requirements Claude should follow when doing equivalent
-work in this repo:
-
-- `.cursor/skills/git-commit/SKILL.md` — full commit workflow: draft message, validate with
-  `npx commitlint`, only commit after explicit user confirmation.
-- `.cursor/skills/implement-issue/SKILL.md` (triggered by `.cursor/rules/implement-github-issue.mdc`) — for a
-  shared `github.com/{owner}/{repo}/issues/{number}` link: read the issue via the GitHub MCP server, classify by
-  label, branch per the Git Flow rules above, implement, commit via the git-commit skill, push, and open a PR
-  using `.github/PULL_REQUEST_TEMPLATE.md`.
-- `.cursor/skills/eleks-ui/SKILL.md` — see "UI conventions" above.
-- `.cursor/skills/firebase/**` — vendored reference docs for Firebase Auth, Firestore, Hosting, Functions, etc.
-  (installed via the skills CLI this project itself builds — see `skills-lock.json`). Consult the relevant
-  subfolder when working in `functions/` or on Firebase config rather than guessing at APIs.

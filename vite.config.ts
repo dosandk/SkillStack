@@ -3,7 +3,6 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,18 +24,7 @@ export default defineConfig({
       '@eleks-ui/theme': path.resolve(
         __dirname,
         'client/src/components/eleks-ui/theme'
-      ),
-      // Shared zod schemas + inferred types (browser-safe: no fs access).
-      '@shared': path.resolve(__dirname, 'shared/src')
+      )
     }
   }
-  // server: {
-  //   // Forward API calls to the Express server during development.
-  //   proxy: {
-  //     '/api': {
-  //       target: 'http://localhost:3001',
-  //       changeOrigin: true
-  //     }
-  //   }
-  // }
 });

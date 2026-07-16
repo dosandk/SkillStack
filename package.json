@@ -9,7 +9,7 @@
     "test:coverage": "vitest run --coverage",
     "pre-commit": "lint-staged",
     "pre-push": "npm run test",
-    "lint:prettier": "prettier \"client/src\" \"shared/src\" --write",
+    "lint:prettier": "prettier \"client/src\" --write",
     "lint:editorconfig": "echo 'run lint for editorconfig'",
     "lint:eslint": "echo 'run lint for eslint'",
     "prepare": "husky",
@@ -68,7 +68,7 @@
     "vitest": "^4.1.10"
   },
   "lint-staged": {
-    "{client,shared}/**/*.{js,ts,jsx,tsx}": [
+    "client/**/*.{js,ts,jsx,tsx}": [
       "npm run lint:editorconfig",
       "npm run lint:prettier",
       "npm run lint:eslint"

@@ -22,18 +22,6 @@
       ],
       "@eleks-ui/theme": [
         "./client/src/components/eleks-ui/theme/index.tsx"
-      ],
-      "@shared": [
-        "./shared/src/index.ts"
-      ],
-      "@shared/*": [
-        "./shared/src/*"
-      ],
-      "@db": [
-        "./db/src/index.ts"
-      ],
-      "@db/*": [
-        "./db/src/*"
       ]
     }
   }

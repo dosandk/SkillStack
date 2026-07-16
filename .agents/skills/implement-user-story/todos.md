@@ -1,0 +1,2 @@
+- don't cover schemas with tests
+-
