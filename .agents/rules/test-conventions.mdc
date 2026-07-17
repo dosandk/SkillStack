@@ -94,6 +94,27 @@ expect(() => parseRepo('not a repo')).toThrow(
 Test files are `*.spec.ts` / `*.spec.tsx`, colocated next to the module under
 test (`pull.ts` → `pull.spec.ts` in the same folder).
 
+## Rule 7 — Do not test validation schemas
+
+Validation schemas (e.g. Zod object schemas) are not covered by tests. Don't write
+cases that assert a schema accepts a valid payload or rejects a missing/wrong-typed
+field — that only re-tests the schema library. Test the *behavior* of the function
+that consumes the schema instead (what it writes, returns, or calls), using valid
+input.
+
+```ts
+// ❌ BAD — tests the schema itself
+it('should reject a payload missing a required field', () => {
+  expect(() => repositorySchema.parse({ author: 'octocat' })).toThrow();
+});
+
+// ✅ GOOD — tests the function's behavior on valid input
+it('should write a validated repository and return the document id', async () => {
+  const id = await writeRepository(validRepo);
+  expect(id).toBe('repo-123');
+});
+```
+
 ## Checklist
 
 - Top-level `describe` names the unit in domain language.
@@ -101,4 +122,5 @@ test (`pull.ts` → `pull.spec.ts` in the same folder).
 - Each `it` description starts with `should ` and states the behavior.
 - Body follows Arrange–Act–Assert with one main assertion.
 - Error assertions check the specific error (message/type), not a bare `toThrow()`.
+- No tests for validation schemas — test the consuming function's behavior instead.
 - `*.spec.ts(x)` colocated with the module under test.
