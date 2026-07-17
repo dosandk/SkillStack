@@ -1,18 +1,8 @@
 import admin from 'firebase-admin';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { HOST, PROJECT_ID, BASE_URL } from './config';
-
-admin.initializeApp({ projectId: PROJECT_ID });
-
-const db = admin.firestore();
-
-async function clearFirestore() {
-  await fetch(
-    `http://${HOST}/emulator/v1/projects/${PROJECT_ID}/databases/(default)/documents`,
-    { method: 'DELETE' }
-  );
-}
+import { BASE_URL } from './config';
+import { db, clearFirestore } from './setup';
 
 describe('apiWriteRepository (integration)', () => {
   beforeEach(clearFirestore);

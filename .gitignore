@@ -28,3 +28,6 @@ dist-ssr
 
 # Vitest
 coverage/
+
+# jscpd duplication reports
+.jscpd-report/

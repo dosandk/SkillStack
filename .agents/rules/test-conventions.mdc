@@ -10,18 +10,33 @@ Structure every test the same way so specs read as behavior specifications:
 `describe` names the unit, each `it` states one expected behavior, and the body
 follows Arrange–Act–Assert.
 
-## Rule 1 — `describe` wrapper
+## Rule 1 — exactly one `describe` per file
 
-Every spec has a top-level `describe` that names the unit under test in domain
-language. Nested `describe` blocks are allowed to group scenarios. No test case
-lives outside a `describe`.
+Every spec has exactly **one** `describe`, and it is the top-level wrapper that
+names the unit under test in domain language. Never use nested `describe` blocks
+and never place multiple `describe` blocks at the same level — one file, one
+`describe`. Group scenarios with clear `it` descriptions instead. No test case
+lives outside the `describe`.
 
 ```ts
 // ❌ BAD — generic label
 describe('pull', () => { ... });
 
-// ✅ GOOD — domain subject
-describe('Repository parsing', () => { ... });
+// ❌ BAD — multiple describes at the same level
+describe('repositoriesStore.list', () => { ... });
+describe('repositoriesStore.add', () => { ... });
+
+// ❌ BAD — nested describes
+describe('repositoriesStore', () => {
+  describe('list', () => { ... });
+  describe('add', () => { ... });
+});
+
+// ✅ GOOD — one describe, scenarios distinguished by `it` descriptions
+describe('repositoriesStore', () => {
+  it('should return every document merged with its id when listing', () => { ... });
+  it('should write a validated repository and return the document id', () => { ... });
+});
 ```
 
 ## Rule 2 — `it` blocks only
@@ -117,7 +132,7 @@ it('should write a validated repository and return the document id', async () =>
 
 ## Checklist
 
-- Top-level `describe` names the unit in domain language.
+- Exactly one `describe` per file, naming the unit in domain language — no nested or sibling `describe` blocks.
 - Every case is an `it` inside a `describe`; no bare `test(...)`.
 - Each `it` description starts with `should ` and states the behavior.
 - Body follows Arrange–Act–Assert with one main assertion.
