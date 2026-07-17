@@ -20,7 +20,8 @@
     "build:client": "tsc -p tsconfig.client.json && vite build",
     "typecheck": "tsc -p tsconfig.client.json",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-rules": "scripts/sync-rules.sh"
   },
   "keywords": [],
   "author": "",
