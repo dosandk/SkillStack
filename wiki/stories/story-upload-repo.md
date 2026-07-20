@@ -1,63 +1,62 @@
 ---
 id: story-upload-repo
-title: Upload a Repository/Skill for Validation
+title: Upload a Repository
 status: planned
 domain: frontend, backend
-created: 2026-07-10
-updated: 2026-07-10
+created: 2026-07-19
+updated: 2026-07-19
 ---
 
-# Story: Upload a Repository/Skill for Validation
+# Story: Upload a Repository
 
 ## User story
 
-As a logged-in user, I want to submit a GitHub URL for my repository or skill, so that
-it's tracked in the registry and appears with pending status while awaiting validation.
+As a logged-in user, I want to submit my repository's URL, so that its skill(s) get
+registered and appear with pending status while awaiting validation.
 
 ## Workflow
 
-A logged-in user enters a GitHub URL in the upload form and submits it. The client
-calls a Cloud Function that checks Firestore for an existing entry for that repo: if
-none exists, it creates a repository document (plus its skills subcollection) with
-`pending` status and the caller recorded as owner; if one already exists, it reuses/
-updates it rather than duplicating. The client then shows the entry as pending. Upload
-is gated to authenticated users both in the UI and by Firestore security rules.
+A logged-in user pastes a GitHub repo URL into the upload page. The client sends it,
+with their auth token, to the backend. The backend scans the repo (the same
+`scanRepository` discovery function the CLI also calls — one implementation of the
+SKILL.md/depth-3 rule, shared by both surfaces), verifies the caller's identity from the
+token, and creates a repository document plus one skill document per discovered skill,
+all marked `pending`. The UI then shows the repo and its skill(s) in that pending state,
+ready for the next story (Validate) to act on.
 
 ## Tasks
 
-| Task   | Module   | Status | Description                                                        |
-| ------ | -------- | ------ | -------------------------------------------------------------------- |
-| SS-411 | frontend | ready  | URL upload input & submission (calls the create-entry function)    |
-| SS-412 | backend  | ready  | Create-entry function: dedup existing repo, record owner, set pending |
-| SS-413 | frontend | draft  | Restrict upload UI to authenticated users                          |
+| Task   | Module   | Status | Description                                         |
+| ------ | -------- | ------ | ------------------------------------------------------ |
+| SS-301 | backend  | ready  | `scanRepository` Cloud Function                        |
+| SS-302 | backend  | ready  | Owner-scoped upload endpoint                           |
+| SS-303 | frontend | ready  | Upload UI                                              |
 
 ## E2E test scenarios
 
-### E2E-1: Golden path — new repository uploaded as pending
+### E2E-1: Golden path — upload a new repository
 
-**Given** a logged-in user and a GitHub repository URL never submitted before
-**When** they submit the URL through the upload form
-**Then** a repository entry and its skills subcollection are created with `pending`
-status, owned by that user
-**And** the UI shows the new entry marked pending immediately after submission.
+**Given** a logged-in user and a public repo with two `SKILL.md` files within depth 3
+**When** they submit that repo's URL on the upload page
+**Then** a repository document and two skill documents are created, all `pending`
+**And** the UI immediately shows the repo with both skills listed as pending.
 
-### E2E-2: Critical negative — duplicate upload does not create a second entry
-
-**Given** a repository already present in the registry
-**When** the same URL is uploaded again (by the same or a different user)
-**Then** the existing entry is reused/updated rather than a duplicate being created
-**And** the submitting user is informed it already exists.
-
-### E2E-3: Permission boundary — anonymous upload rejected
+### E2E-2: Critical negative — upload while signed out
 
 **Given** a visitor who is not logged in
-**When** they attempt to submit a URL through the upload form or call the create-entry
-function directly
-**Then** the UI hides/disables the upload action and the backend rejects the call via
-the security rules from story-foundation-registry-model
-**And** no registry entry is created.
+**When** they attempt to submit a repo URL (e.g. by navigating to the upload route
+directly, or with a stripped/invalid auth token)
+**Then** the request is rejected before any Firestore write occurs
+**And** no repository or skill document is created.
+
+### E2E-3: Permission/edge boundary — repo with no discoverable skills
+
+**Given** a repo with no `SKILL.md` within 3 nesting levels
+**When** a logged-in user submits its URL
+**Then** the UI reports that no installable skills were found
+**And** no repository/skill documents are created for it.
 
 ## Dependencies
 
-- Depends on: story-auth-profile, story-foundation-registry-model
-- Used by: story-validate-skill
+- Depends on: story-catalog-search, story-auth-profile
+- Used by: story-validate-skill, story-cli-install-new (shares `scanRepository`)

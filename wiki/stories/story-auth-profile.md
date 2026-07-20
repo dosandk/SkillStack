@@ -1,64 +1,59 @@
 ---
 id: story-auth-profile
 title: GitHub Login & Profile
-status: partial
-domain: frontend, backend
-created: 2026-07-10
-updated: 2026-07-10
+status: planned
+domain: frontend
+created: 2026-07-19
+updated: 2026-07-19
 ---
 
 # Story: GitHub Login & Profile
 
 ## User story
 
-As a visitor, I want to log in with my GitHub account and see my profile with the
-repositories/skills I've uploaded, so that I have a persistent identity the rest of the
-app can use to gate ownership actions.
+As a visitor, I want to log in with GitHub, so that I have an identity the app can use
+to let me upload and manage my own repositories/skills.
 
 ## Workflow
 
-The user signs in via GitHub OAuth; the client establishes and persists session state
-and guards authenticated routes. On the profile page, the client fetches the logged-in
-user's GitHub info (from the auth provider) and calls a Cloud Function that queries
-Firestore for every repository owned by that user's GitHub identity, returning each
-entry's current validation status for display.
+The login mechanism (Firebase Auth + GitHub provider, dev emulator wiring) already
+exists in `client/src/lib/firebase.ts` — nothing in the app reads that auth state yet.
+This story adds the plumbing: a context that exposes the current signed-in user across
+the app, a login/logout control, and a route guard that protects pages requiring login.
+Once signed in, the user can visit their profile page and see their GitHub info (avatar,
+name, profile link) pulled directly from the auth provider — no backend call needed.
 
 ## Tasks
 
-| Task   | Module   | Status | Description                                       |
-| ------ | -------- | ------ | --------------------------------------------------- |
-| SS-101 | frontend | done   | GitHub OAuth login flow                            |
-| SS-102 | frontend | done   | Client-side auth state & session guard             |
-| SS-431 | frontend | ready  | Profile page with GitHub information               |
-| SS-432 | frontend | draft  | Render list of user's uploaded skills/repos        |
-| SS-433 | backend  | draft  | Query repositories owned by the authenticated user |
+| Task   | Module   | Status | Description                                    |
+| ------ | -------- | ------ | ------------------------------------------------- |
+| SS-201 | frontend | ready  | Auth context over Firebase Auth state             |
+| SS-202 | frontend | ready  | Login flow + protected route guard                |
+| SS-203 | frontend | ready  | Profile page                                       |
 
 ## E2E test scenarios
 
-### E2E-1: Golden path — login and view profile with uploads
+### E2E-1: Golden path — log in and view profile
 
-**Given** a GitHub user who has previously uploaded two repositories
-**When** they log in via GitHub and navigate to their profile page
-**Then** the page shows their GitHub username/avatar and both repositories with each
-one's current validation status
-**And** the list matches exactly what SS-433's query returns for their uid.
+**Given** a visitor not yet signed in
+**When** they click "log in with GitHub," complete the GitHub OAuth flow, and navigate
+to their profile page
+**Then** the profile page displays their GitHub avatar, name, and profile link.
 
-### E2E-2: Critical negative — session expired mid-visit
+### E2E-2: Critical negative — visiting profile while signed out
 
-**Given** a logged-in user whose session token has expired
-**When** they navigate to the profile page
-**Then** they are redirected to log in again rather than shown stale or partial data
-**And** no profile data is fetched with the expired session.
+**Given** a visitor who is not signed in
+**When** they navigate directly to the profile route (e.g. via URL)
+**Then** they're redirected away rather than seeing a broken or empty profile page.
 
-### E2E-3: Permission boundary — cannot view another user's profile data
+### E2E-3: Permission/edge boundary — logout mid-session
 
-**Given** a logged-in user
-**When** they attempt to query or navigate to another user's uploaded-repos data
-**Then** the backend query is scoped to the caller's own uid and returns only their own
-repositories
-**And** no other user's private profile data is exposed.
+**Given** a signed-in user viewing their profile
+**When** they click logout
+**Then** they're immediately treated as signed out
+**And** navigating back to the profile route redirects them, same as E2E-2.
 
 ## Dependencies
 
-- Depends on: story-foundation-registry-model
-- Used by: (none)
+- Depends on: story-catalog-search (routing setup)
+- Used by: story-upload-repo, story-validate-skill

@@ -1,71 +1,68 @@
 ---
 id: story-cli-install-update
-title: CLI — Reinstall/Update an Already-Tracked Skill
+title: CLI — Reinstall/Update an Already-Tracked Repo
 status: planned
-domain: cli
-created: 2026-07-10
-updated: 2026-07-10
+domain: cli, backend
+created: 2026-07-19
+updated: 2026-07-19
 ---
 
-# Story: CLI — Reinstall/Update an Already-Tracked Skill
+# Story: CLI — Reinstall/Update an Already-Tracked Repo
 
 ## User story
 
-As a developer re-running `npx skillstack add` against a repository I've already
-installed from, I want the CLI to tell me whether the owner has updated it since, and
-let me choose which version to install if it was previously validated, so that I don't
-silently overwrite a validated skill with unreviewed changes.
+As a developer, I want to re-run `npx skillstack add <repo-url>` against a repo I've
+already installed from, so that I'm told about upstream changes and can choose the
+right version instead of silently getting stale or unexpectedly different content.
 
 ## Workflow
 
-This story reuses the full discovery/select/install/telemetry pipeline from
-story-cli-install-new and its backend registry lookup — the only new behavior is what
-happens once the lookup returns a known repo. The CLI compares the repository's latest
-commit hash to the one stored in Firestore. If unchanged, it installs using the stored
-info as-is. If changed and the stored version was never validated, it installs the
-latest version the same way a first-time install would. If changed and the stored
-version was already validated, the CLI presents a choice: install the validated stored
-version, or the newer unvalidated latest version. Either way, a successful install
-triggers the same telemetry call as story-cli-install-new.
+The CLI calls `scanRepository` as usual; this time the response says the repo is known,
+with its stored commit hash and per-skill validation status. If the commit hash matches
+what was last installed, nothing special happens — install proceeds normally. If it
+differs and the repo's stored status is `validated`, the CLI tells the user the repo has
+changed and lets them choose: install the stored (validated) version, or the new latest
+one. If it differs and the repo isn't validated yet, the CLI just installs the latest
+version directly, same as a first-time install — no need to ask, since there was no
+validated baseline to protect. Either way, a successful reinstall re-fires the same
+telemetry call as a first-time install, marking things pending again if changed.
 
 ## Tasks
 
-| Task   | Module | Status | Description                                     |
-| ------ | ------ | ------ | -------------------------------------------------- |
-| SS-322 | cli    | draft  | Commit-hash update detection                       |
-| SS-323 | cli    | draft  | Version choice prompt for validated repos with changes |
+| Task   | Module  | Status | Description                                                        |
+| ------ | ------- | ------ | ----------------------------------------------------------------------- |
+| SS-601 | backend | ready  | Repo-status response contract                                            |
+| SS-602 | cli     | ready  | Commit-diff comparison + choice prompt (validated + changed)              |
+| SS-603 | cli     | ready  | Auto-install-latest path (not yet validated + changed) + telemetry re-fire |
 
 ## E2E test scenarios
 
-### E2E-1: Golden path — unchanged repo reinstalls from stored info
+### E2E-1: Golden path — validated repo has a new commit, user picks latest
 
-**Given** a repository already tracked in Firestore whose latest GitHub commit matches
-the stored commit hash
-**When** the user re-runs `npx skillstack add <repo-url>`
-**Then** the CLI installs using the stored commit hash and validation statuses without
-re-fetching or re-warning
-**And** telemetry still records the new installation.
+**Given** a repo previously installed at commit `abc123`, now at `def456`, with stored
+status `validated`
+**When** the user re-runs `npx skillstack add <repo-url>` and chooses "latest" at the
+prompt
+**Then** the new commit's content is installed
+**And** telemetry records the reinstall and marks the repo/skill(s) pending again.
 
-### E2E-2: Critical negative — validated version changed, user picks wrong choice path handled
+### E2E-2: Critical negative — user picks stored version, but it's gone from GitHub
 
-**Given** a repository whose stored version is `approved` but the latest commit differs
-**When** the user is prompted and explicitly chooses the newer (unvalidated) version
-**Then** the CLI installs the newer version but clearly marks it as unvalidated in its
-output, and telemetry marks it as awaiting a new validation pass
-**And** the previously-approved stored version's status is not silently carried over to
-the new commit.
+**Given** the same scenario as E2E-1, but the user chooses "stored" and that exact
+commit is no longer resolvable on GitHub (force-pushed history, etc.)
+**When** the CLI attempts to fetch it
+**Then** it surfaces a clear error rather than silently falling back to latest
+**And** no partial install occurs.
 
-### E2E-3: Permission/edge boundary — unvalidated stored version with a new commit
+### E2E-3: Permission/edge boundary — not-yet-validated repo has changed
 
-**Given** a repository whose stored version was never validated and the latest commit
-differs from the stored hash
+**Given** a repo previously installed at commit `abc123`, now at `def456`, with stored
+status `pending` (never validated)
 **When** the user re-runs the add command
-**Then** the CLI installs the latest version directly (same as a first-time install),
-without presenting a version-choice prompt, since there is no validated version to
-protect
-**And** the stored commit hash is updated to the latest after install.
+**Then** the latest version installs directly, with no choice prompt
+**And** telemetry still records the reinstall.
 
 ## Dependencies
 
 - Depends on: story-cli-install-new
-- Used by: (none)
+- Used by: (none — leaf story)

@@ -15,10 +15,12 @@ prototype for a course on using Claude Code / Cursor well. It has three moving p
    (validation runs via an LLM through the Anthropic SDK), and install telemetry. Firestore stores only
    metadata + the GitHub commit hash, never the skill files themselves.
 
-Full requirements/spec: `wiki/project_description.md`. Story catalogue and per-story task breakdown:
-`wiki/stories/_index.md` and `wiki/stories/*.md` (module-scoped tasks live in `wiki/tasks/`). Check these
-before starting non-trivial work to see whether a story is `done`/`planned`, its E2E test scenarios, and
-the unit/integration test requirements on its tasks.
+Full requirements/spec: `wiki/project_description.md`. Architecture spine (binding invariants —
+layering, the Cloud-Functions-as-sole-Firestore-gateway rule, auth pattern, etc.): `wiki/architecture.md`.
+Story catalogue and per-story task breakdown: `wiki/stories/_index.md` and `wiki/stories/*.md`
+(module-scoped tasks live in `wiki/tasks/`). Check all of these before starting non-trivial work — the
+architecture spine for which invariants (AD-n) constrain the change, the story/task files for whether a
+story is `done`/`planned`, its E2E test scenarios, and the unit/integration test requirements on its tasks.
 
 ## Monorepo layout
 
@@ -29,7 +31,7 @@ The root `package.json` covers everything **except `/cli`**, which is its own np
 | `client/`    | React 19 + Vite front end. Vite `root` is `client/`.                                                                                                                                                                                                        |
 | `functions/` | Firebase Cloud Functions — the backend. TypeScript, compiled to `lib/` via `tsc`. Zod schemas for Firestore document shapes live here. Entry point: `src/index.ts`, compiled output: `lib/index.js`.                                                        |
 | `cli/`       | Separate npm package (`skillstack-cli`), built with `tsup`. Entry points: `src/bin.ts` (the `skillstack` binary via commander) and `src/index.ts`.                                                                                                          |
-| `wiki/`      | Product spec (`project_description.md`), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both — no ADRs currently checked in. |     |
+| `wiki/`      | Product spec (`project_description.md`), the architecture spine (`architecture.md` — binding invariants AD-1..AD-n, requirements traceability table), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both. |     |
 
 ## Commands
 
@@ -69,5 +71,10 @@ is present; check before writing tests.
 
 ## Architecture notes
 
+See `wiki/architecture.md` for the full architecture spine — this is where binding decisions
+(Cloud Functions as the sole Firestore gateway, backend adapter/store layering, auth-token
+verification pattern, calculated-field aggregation, etc.) actually live; check it before any
+non-trivial backend/client/cli change, not just this section.
+
 - **Path aliases** (`@eleks-ui/components`, `@eleks-ui/theme`) are defined in `tsconfig.base.json` and mirrored in `vite.config.ts`'s `resolve.alias` for the client build. If you add a new alias, update both places.
-- Backend work belongs in `functions/` against Firestore.
+- Backend work belongs in `functions/` against Firestore — specifically, only `functions/src/services/*.ts`; see the spine's AD-1/AD-2.

@@ -3,8 +3,8 @@ id: story-cli-install-new
 title: CLI — Install Skills from a Repo (first-time)
 status: planned
 domain: cli, backend
-created: 2026-07-10
-updated: 2026-07-10
+created: 2026-07-19
+updated: 2026-07-19
 ---
 
 # Story: CLI — Install Skills from a Repo (first-time)
@@ -17,29 +17,25 @@ installed into my project, with a clear warning if the repo isn't yet validated.
 
 ## Workflow
 
-The CLI scans the target GitHub repository for `SKILL.md` files up to 3 nested levels
-deep (root, `/skills/<name>/`, `/skills/<group>/<name>/`); if `--skill` wasn't given, it
-lists everything found for the user to choose from. Once skill(s) are selected, the CLI
-calls a Cloud Function that looks up the repository in Firestore — since it's unknown,
-the CLI warns the user the repo is unvalidated and asks them to confirm before
-proceeding. On confirmation, the CLI prompts for target platforms (Claude, Cursor,
-Copilot — multi-select) and copies each selected skill's full directory into the
-right platform folder(s). After install, the CLI calls a telemetry Cloud Function that
-records the installation and marks the repo/skills in Firestore as awaiting validation.
+The CLI calls the backend's `scanRepository` function with the repo URL — the same
+discovery function the web upload flow uses, so there's exactly one implementation of
+the SKILL.md/depth-3 rule. If the repo is unknown to the registry, the CLI warns the
+user it's unvalidated and asks for confirmation before continuing. If `--skill` wasn't
+given, it lists every skill the scan discovered for the user to pick from. Once skill(s)
+are selected and confirmed, the CLI fetches each one's actual file content directly from
+GitHub (not through the backend — keeps bandwidth on the user's own connection),
+prompts for target platform(s) (Claude, Cursor, Copilot — multi-select), and writes each
+skill's full directory into the right platform folder(s). Finally it calls a telemetry
+function that records the install and marks the repo/skill(s) as awaiting validation.
 
 ## Tasks
 
-| Task   | Module  | Status | Description                                         |
-| ------ | ------- | ------ | ------------------------------------------------------ |
-| SS-301 | cli     | ready  | Repository scan for SKILL.md up to depth 3 & list discovered skills |
-| SS-303 | cli     | ready  | Capture full skill directory contents                  |
-| SS-311 | cli     | ready  | Multi-select target platform prompt & install skill directory into platform folders |
-| SS-313 | cli     | ready  | Multiple skill selection in one run                     |
-| SS-321 | cli     | ready  | Firestore lookup call + unvalidated-repo warning        |
-| SS-331 | cli     | ready  | Post-install telemetry request                         |
-| SS-332 | backend | draft  | Mark installed repo/skills as awaiting validation      |
-| SS-511 | backend | ready  | Repository lookup function (commit hash + statuses)    |
-| SS-512 | backend | ready  | Telemetry recording function                           |
+| Task   | Module  | Status | Description                                                          |
+| ------ | ------- | ------ | ------------------------------------------------------------------------ |
+| SS-501 | cli     | ready  | `add` command calls `scanRepository`; unvalidated-repo warning; skill selection |
+| SS-502 | cli     | ready  | Platform target selection + file placement                               |
+| SS-503 | cli     | ready  | Direct-to-GitHub content download for selected skill(s)                   |
+| SS-504 | backend | ready  | Telemetry Cloud Function                                                  |
 
 ## E2E test scenarios
 
@@ -54,22 +50,21 @@ the local project
 **And** a telemetry call records the install and marks the repo/skill as pending in
 Firestore.
 
-### E2E-2: Critical negative — lookup service unreachable
+### E2E-2: Critical negative — backend scan unreachable
 
-**Given** the registry lookup Cloud Function is unreachable
-**When** the CLI attempts the pre-install lookup
-**Then** it surfaces a clear error and lets the user decide whether to proceed without
-that information, rather than silently treating the repo as validated
-**And** no install proceeds without explicit user confirmation in that state.
+**Given** the `scanRepository` Cloud Function is unreachable
+**When** the CLI attempts the scan
+**Then** it surfaces a clear error and does not proceed to install anything
+**And** it does not silently treat the repo as validated or as containing no skills.
 
 ### E2E-3: Permission/edge boundary — no SKILL.md found, or nested past depth 3
 
 **Given** a repo with no `SKILL.md` within 3 levels, or only one nested at depth 4
 **When** the user runs the add command against it (with or without `--skill`)
 **Then** the CLI reports that no installable skills were found
-**And** it does not install anything nested deeper than the allowed 3 levels.
+**And** nothing nested deeper than the allowed 3 levels is ever installed.
 
 ## Dependencies
 
-- Depends on: story-foundation-registry-model
+- Depends on: story-catalog-search, story-upload-repo (shares `scanRepository`)
 - Used by: story-cli-install-update

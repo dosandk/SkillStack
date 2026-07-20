@@ -2,70 +2,66 @@
 id: story-catalog-search
 title: Browse & Search Validated Skills
 status: planned
-domain: frontend, backend
-created: 2026-07-10
-updated: 2026-07-10
+domain: frontend, backend, platform
+created: 2026-07-19
+updated: 2026-07-19
 ---
 
 # Story: Browse & Search Validated Skills
 
 ## User story
 
-As any visitor (logged in or not), I want to search and browse skills and repositories
-that have passed validation, with up-to-date GitHub metadata, so that I can find
-trustworthy skills to install.
+As any visitor (logged in or not), I want to search for skills and repositories, so
+that I can find and evaluate ones that have already passed validation.
 
 ## Workflow
 
-The client renders skills as cards with free-text search, tag/agent filtering, and
-sort tabs (Trending/Hot/All Time). Card data and search results are backed by a public
-Cloud Function that returns only validated repositories/skills from Firestore, merged
-live with GitHub metadata (e.g. stars) fetched via the GitHub API at request time.
-
-An earlier iteration of this UI (SS-201/202/203) was built against the legacy
-`db/content` mock data source, which no longer exists. Treat that implementation as a
-reference for markup/interaction patterns only — none of it is done against the new
-Firestore/Cloud-Functions-backed data model, so it needs a rewrite, not a reuse.
+A visitor opens the catalog page — no login required. The page's route loader calls
+the backend's list/search function, which returns only repositories (and their skills)
+whose calculated validation status is `validated`, each enriched with live GitHub data
+(stars, etc.) blended in on top of the stored Firestore fields. The visitor can search
+across both individual skills and whole repositories by name. Because this is the first
+page in the app, it's also where routing itself gets set up, and where the Firestore
+schema + security posture (deny-all client access — only Cloud Functions ever touch the
+database) get established, since every later story reads or writes through this same
+schema.
 
 ## Tasks
 
-| Task   | Module   | Status | Description                                          |
-| ------ | -------- | ------ | ------------------------------------------------------ |
-| SS-201 | frontend | ready  | Skill listing as cards                                 |
-| SS-202 | frontend | ready  | Free-text search + tag/agent filtering                 |
-| SS-203 | frontend | ready  | Sort tabs (Trending/Hot/All Time) + status badges      |
-| SS-401 | frontend | ready  | Search & view validated skills (wired to real data)    |
-| SS-402 | frontend | ready  | Search repositories                                    |
-| SS-403 | frontend | draft  | Show live GitHub metadata (stars) in results           |
-| SS-513 | backend  | draft  | GitHub API enrichment (stars & live metadata)          |
-| SS-514 | backend  | draft  | Public search endpoint for validated content           |
+| Task   | Module   | Status | Description                                            |
+| ------ | -------- | ------ | -------------------------------------------------------- |
+| SS-101 | backend  | ready  | Repository & skills schema + validated-only query        |
+| SS-102 | platform | ready  | `firestore.rules` deny-all                                |
+| SS-103 | backend  | ready  | GitHub metadata enrichment for search                     |
+| SS-104 | frontend | ready  | React Router v8 setup + catalog/search page               |
 
 ## E2E test scenarios
 
-### E2E-1: Golden path — search returns validated results with live stars
+### E2E-1: Golden path — search finds a validated skill
 
-**Given** a validated skill and an unvalidated skill both matching a search term
-**When** an anonymous visitor searches for that term
-**Then** only the validated skill appears, shown with its current GitHub star count
-**And** the star count reflects a live GitHub API call, not stale stored data.
+**Given** a repository in Firestore with calculated status `validated` and one skill
+named "frontend-design"
+**When** a visitor (not logged in) searches "frontend-design" on the catalog page
+**Then** the result appears, showing both the stored description and live GitHub stars
+**And** no unvalidated repository or skill appears anywhere in the results.
 
-### E2E-2: Critical negative — GitHub enrichment unavailable
+### E2E-2: Critical negative — nothing passes validation yet
 
-**Given** the GitHub API is unreachable when a search is performed
-**When** the visitor searches or browses
-**Then** results still render using stored Firestore data, with metadata gracefully
-omitted or marked stale rather than the whole search failing
-**And** the failure is not surfaced as a broken page.
+**Given** Firestore contains only `pending`/`failed` repositories, none `validated`
+**When** a visitor searches anything
+**Then** the catalog shows a clear empty state
+**And** no pending/failed content is exposed to the public search.
 
-### E2E-3: Permission boundary — pending/failed content never shown
+### E2E-3: Permission/edge boundary — direct Firestore access attempt
 
-**Given** repositories in `pending` and `failed` validation states
-**When** any visitor (logged in or not) searches or browses the catalog
-**Then** neither appears in results regardless of search term or filter
-**And** this holds even when the visitor is the owner of that unvalidated content
-(they'd see it via their own profile, not the public catalog).
+**Given** the deployed `firestore.rules`
+**When** any client (authenticated or not) attempts to read or write Firestore directly,
+bypassing the Cloud Functions API
+**Then** the request is denied
+**And** the catalog page continues to work normally through the Cloud Functions API.
 
 ## Dependencies
 
-- Depends on: story-foundation-registry-model
-- Used by: (none)
+- Depends on: (none — baseline)
+- Used by: story-auth-profile, story-upload-repo, story-validate-skill,
+  story-cli-install-new, story-cli-install-update
