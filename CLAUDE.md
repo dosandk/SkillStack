@@ -2,73 +2,84 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Repository layout
+## Project
 
-This is a single-repo, multi-package project (not npm workspaces — each package has its own
-`package.json` / `node_modules` and is installed independently).
-TypeScript path aliases and base compiler options are centralized in `tsconfig.base.json`.
+SkillStack is a catalog of AI agent skills modelled after [skills.sh](https://www.skills.sh/) — a teaching
+prototype for a course on using Claude Code / Cursor well. It has three moving parts:
 
-- **`client/`** — React 19 + Vite front-end. Uses the vendored ELEKS UI component library (MUI-based). Firebase web SDK client in `client/src/lib/firebase.ts`. Root-level `package.json`, `vite.config.ts`, and `tsconfig.client.json` build this; Vite `root` is `client/`, output goes to `dist/`.
-- **`functions/`** — Firebase Cloud Functions (own `package.json`, `firebase-admin`, `firebase-functions`). The backend API.
-- **`cli/`** — `skillstack-cli`, a Commander-based CLI (own `package.json`, built with `tsup`). Commands: `push`, `pull`.
-- **`shared/`** — intended home for shared Zod schemas (currently empty; schemas presently live inside `functions/`).
-- **`wiki/`** — planning docs (stories, tasks, templates); not code.
+1. A **web catalog** where users browse/search validated skills and repos, log in with GitHub, and upload
+   their own repos for validation.
+2. A **CLI** (`skillstack`, published to npm) that installs skills from any GitHub repo into a local project
+   (`npx skillstack add <repo-url> --skill <name>`), mirroring the `npx skills add ...` UX.
+3. A **Firebase backend** (Cloud Functions + Firestore) that tracks repos/skills, their validation status
+   (validation runs via an LLM through the Anthropic SDK), and install telemetry. Firestore stores only
+   metadata + the GitHub commit hash, never the skill files themselves.
 
-### ELEKS UI (client components)
+Full requirements/spec: `wiki/project_description.md`, distilled into citable FR/NFR ids in
+`wiki/requirements.md`. Architecture spine (paradigm, stack, structural seed): `wiki/architecture.md`.
+Its binding invariants — layering, the Cloud-Functions-as-sole-Firestore-gateway rule, auth
+pattern, etc. (AD-1..AD-13) — live in the companion file `wiki/architecture-invariants.md`,
+split out so nothing paraphrases them a second time. Story catalogue and per-story task
+breakdown: `wiki/stories/_index.md` and `wiki/stories/*.md` (module-scoped tasks live in
+`wiki/tasks/`). Check all of these before starting non-trivial work — the requirements file
+for which FR/NFR the change relates to, the invariants file for which ADs constrain it, the
+story/task files for whether a story is `done`/`planned`, its E2E test scenarios, and the
+unit/integration test requirements on its tasks.
 
-Import UI components only via the aliases, never by relative path:
+## Monorepo layout
 
-```tsx
-import { Button, Avatar } from '@eleks-ui/components';
-import { EleksUIThemeProvider, useEleksUITheme } from '@eleks-ui/theme';
-```
+The root `package.json` covers everything **except `/cli`**, which is its own npm package (no npm workspaces).
 
-Aliases (`@eleks-ui/components`, `@eleks-ui/theme`) are defined in both `tsconfig.base.json` and `vite.config.ts`.
-Component source lives under `client/src/components/eleks-ui/` (`core/`, `x-components/`, `custom/`). `*.figma.tsx`
-files are excluded from the build. There is also an `eleks-ui` skill with the full conventions — prefer it for any UI work.
+| Folder       | Responsibility                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- |
+| `client/`    | React 19 + Vite front end. Vite `root` is `client/`.                                                                                                                                                                                                                                                                                                                                                                   |
+| `functions/` | Firebase Cloud Functions — the backend. TypeScript, compiled to `lib/` via `tsc`. Zod schemas for Firestore document shapes live here. Entry point: `src/index.ts`, compiled output: `lib/index.js`.                                                                                                                                                                                                                   |
+| `cli/`       | Separate npm package (`skillstack-cli`), built with `tsup`. Entry points: `src/bin.ts` (the `skillstack` binary via commander) and `src/index.ts`.                                                                                                                                                                                                                                                                     |
+| `wiki/`      | Product spec (`project_description.md`), its FR/NFR ids (`requirements.md`), the architecture spine (`architecture.md` — paradigm/stack/structural seed) plus its binding invariants (`architecture-invariants.md` — AD-1..AD-13), a story catalogue (`wiki/stories/`, each story with E2E test scenarios), module-scoped tasks (`wiki/tasks/`, each with unit/integration test requirements), and templates for both. |     |
 
-## Backend architecture (functions/)
+## Commands
 
-Three layers, cleanly separated:
-
-1. **`functions/src/index.ts`** — the only file that exports Firebase entry points. Each `apiXxx` is a thin `onRequest` handler that calls a domain function, maps success/errors to HTTP status codes, and logs. `admin.initializeApp()` runs here before anything else is imported.
-2. **`functions/src/functions/*.ts`** — domain logic (`writeRepository`, `getRepositoriesList`, `trackInstall`). These validate input with Zod, orchestrate the store, and throw typed errors (e.g. `NotFoundError`) that the handler translates to status codes.
-3. **`functions/src/services/repositories-store.ts`** — the sole Firestore access layer. Owns collection names (`repositories`, `skills` subcollection), document shapes, the `repositorySchema`, and all read/write + per-skill install-counter operations. Domain code goes through this store rather than touching Firestore directly.
-
-Data model: a `repositories` document holds repo metadata + `skills[]`; each skill is also a doc in that repo's `skills` subcollection carrying an `installCount`.
-
-## Common commands
-
-Run from the **repo root** unless noted.
-
-```bash
-npm run dev          # Vite dev server for the client
-npm run build        # typecheck + vite build → dist/
-npm run typecheck    # tsc -p tsconfig.client.json (no emit)
-npm run lint         # eslint .
-npm run test:run     # vitest run (client-side unit tests)
-npm run emulators    # firebase emulators:start (auth:9099, functions:5001, firestore:8080, UI on)
-```
-
-### Functions (run inside `functions/`)
+Run from the repo root unless noted.
 
 ```bash
-npm run test:run              # unit tests (*.spec.ts)
-npm run test:integration      # integration tests (*.i.spec.ts) against a RUNNING emulator
-npm run test:integration:ci   # build + spin up emulators, then run integration tests
-npm run test:all              # unit + integration:ci (this is the deploy predeploy gate)
-npm run serve                 # emulators for functions only
-npm run deploy                # firebase deploy --only functions
+npm run dev              # client (Vite) + legacy server, concurrently
+npm run dev:client        # Vite dev server only
+npm run emulators         # Firebase emulators (auth, functions, hosting)
+
+npm run build             # tsc typecheck + vite build for client, tsc build for server
+npm run typecheck         # tsc -p tsconfig.client.json && tsc -p tsconfig.server.json (no emit)
+npm run lint               # eslint .
+npm run lint:prettier      # prettier --write over client/src
+npm test                   # currently a stub — no real test suite is wired up yet
 ```
 
-Run a single test file / test with vitest: `npx vitest run path/to/file.spec.ts` or `npx vitest run -t "test name"`.
-
-Integration specs (`*.i.spec.ts`) require the Firestore + Functions emulators and run **serially** (`fileParallelism: false`) because they share one emulator instance and clear/seed Firestore between runs. Emulator project/host config is in `functions/src/integration-specs/config.ts`.
-
-### CLI (run inside `cli/`)
+CLI package (`cd cli`):
 
 ```bash
-npm run build        # tsup → dist/ (bin at dist/bin.js)
-npm run dev          # tsup --watch (NODE_ENV=development)
-npm run test:run     # vitest run
+npm run build   # tsup — bundles src/bin.ts and src/index.ts to dist/
+npm run dev     # tsup --watch, NODE_ENV=development
 ```
+
+Functions package (`cd functions`):
+
+```bash
+npm run build   # tsc — compiles src/ to lib/
+npm run test:run  # vitest run — unit tests
+npm run serve   # firebase emulators:start --only functions
+npm run deploy  # firebase deploy --only functions (runs build first via predeploy)
+npm run logs    # firebase functions:log
+```
+
+There is no per-test-file runner configured — `npm test` is a placeholder echo. Don't assume a test framework
+is present; check before writing tests.
+
+## Architecture notes
+
+See `wiki/architecture.md` for the full architecture spine, and `wiki/architecture-invariants.md`
+for the binding decisions themselves (Cloud Functions as the sole Firestore gateway, backend
+adapter/store layering, auth-token verification pattern, calculated-field aggregation, etc.,
+as AD-1..AD-13) — check the invariants file before any non-trivial backend/client/cli change,
+not just this section.
+
+- **Path aliases** (`@eleks-ui/components`, `@eleks-ui/theme`) are defined in `tsconfig.base.json` and mirrored in `vite.config.ts`'s `resolve.alias` for the client build. If you add a new alias, update both places.
+- Backend work belongs in `functions/` against Firestore — specifically, only `functions/src/services/*.ts`; see `architecture-invariants.md`'s AD-1/AD-2.
