@@ -1,11 +1,14 @@
 # Story Catalogue — SkillStack
 
-Last updated: 2026-07-19
+Last updated: 2026-07-21
 
 Derived from [../project_description.md](../project_description.md) and
 [../architecture.md](../architecture.md) (the architecture spine — read it first; every
-story below builds on its invariants rather than re-deciding them). Each row links to a
-story file in this folder; each story lists the tasks that make it up, which live in
+story below builds on its invariants rather than re-deciding them). The spine's
+AD-1..AD-13 rules themselves live in [../architecture-invariants.md](../architecture-invariants.md) —
+a companion file, split out so it can be included wholesale elsewhere without a second
+copy drifting from it. Each row links to a story file in this folder; each story lists
+the tasks that make it up, which live in
 [../tasks/](../tasks/).
 
 ## Stories vs. tasks
