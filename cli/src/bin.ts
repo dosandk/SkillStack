@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import { Command } from 'commander';
 
-import { pull, push } from './commands';
+import { add } from './commands';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,22 +63,18 @@ program
   .version(pkgVersion);
 
 program
-  .command('push')
-  .description('push ai configs...')
-  .action(async () => {
-    // some logic here...
-    push();
-    console.log('push finished...');
-  });
-
-program
-  .command('pull')
-  .description('pull AI configs...')
-  .option('--path <github_repo_repo>', 'link to the github repo')
-  .action(async opts => {
-    // some logic here
-    pull();
-    console.log('pull finished...');
+  .command('add')
+  .description('add skills...')
+  .argument('<repoUrl>', 'GitHub repository URL')
+  .option('--skill <names...>', 'skill names to install')
+  .action(async (repoUrl, options) => {
+    try {
+      await add(repoUrl, options.skill);
+    } catch (error) {
+      // NOTE: show this output for user
+      console.error(`🔴 Error: ${error.message}`);
+      process.exit(1);
+    }
   });
 
 program.exitOverride(err => {

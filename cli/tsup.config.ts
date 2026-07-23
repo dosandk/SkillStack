@@ -14,6 +14,7 @@ export default defineConfig({
   outExtension: ({ format }) => ({
     js: '.js'
   }),
+  external: ['dotenv'],
   // NOTE: temp commented
   onSuccess() {
     // cpSync('src/components-docs', 'dist/components-docs', { recursive: true });

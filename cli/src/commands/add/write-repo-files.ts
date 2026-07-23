@@ -1,6 +1,24 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
-import { RepoDownload, PullResult } from './interfaces';
+
+interface PullResult {
+  createdFiles: number;
+  createdDirs: number;
+  outDir: string;
+}
+
+export interface RepoFile {
+  path: string;
+  content: Buffer;
+}
+
+interface RepoDownload {
+  owner: string;
+  repoName: string;
+  defaultBranch: string;
+  dirs: string[];
+  files: RepoFile[];
+}
 
 export function writeRepoFiles(
   download: RepoDownload,
@@ -16,9 +34,12 @@ export function writeRepoFiles(
 
   for (const file of download.files) {
     const target = join(outDir, file.path);
+
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, file.content);
+
     createdFiles++;
+
     console.log(`  + ${file.path} (${file.content.length} B)`);
   }
 
