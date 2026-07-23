@@ -74,7 +74,16 @@ it('should throw on an unrecognizable reference', () => { ... });
 The `it` body follows Arrange–Act–Assert, with one main assertion for the
 behavior under test. Split unrelated behaviors into separate `it` blocks.
 
+Express the three phases with **structure** — a blank line between arrange, act,
+and assert — **not** with `// Arrange` / `// Act` / `// Assert` label comments.
+Those labels narrate *what* the code does, which `code-comments.md` forbids
+(comments are `NOTE:`-only, for non-trivial nuance). The example below shows the
+labels **only to illustrate the phases**; do not emit them in generated or
+committed code — keep the phases separated by blank lines alone.
+
 ```ts
+// Example only — the // Arrange/Act/Assert labels illustrate the phases.
+// In real code, drop the labels and keep just the blank-line separation.
 it('should strip a trailing .git suffix', () => {
   // Arrange
   const repoUrl = 'https://github.com/dosandk/SkillStack.git';
@@ -83,6 +92,18 @@ it('should strip a trailing .git suffix', () => {
   const parsed = parseRepo(repoUrl);
 
   // Assert
+  expect(parsed).toEqual({ owner: 'dosandk', repo: 'SkillStack', ref: undefined });
+});
+```
+
+The same test as it should actually be written — phases as blank lines, no labels:
+
+```ts
+it('should strip a trailing .git suffix', () => {
+  const repoUrl = 'https://github.com/dosandk/SkillStack.git';
+
+  const parsed = parseRepo(repoUrl);
+
   expect(parsed).toEqual({ owner: 'dosandk', repo: 'SkillStack', ref: undefined });
 });
 ```
@@ -135,7 +156,7 @@ it('should write a validated repository and return the document id', async () =>
 - Exactly one `describe` per file, naming the unit in domain language — no nested or sibling `describe` blocks.
 - Every case is an `it` inside a `describe`; no bare `test(...)`.
 - Each `it` description starts with `should ` and states the behavior.
-- Body follows Arrange–Act–Assert with one main assertion.
+- Body follows Arrange–Act–Assert with one main assertion, phases separated by blank lines — no `// Arrange` / `// Act` / `// Assert` label comments.
 - Error assertions check the specific error (message/type), not a bare `toThrow()`.
 - No tests for validation schemas — test the consuming function's behavior instead.
 - `*.spec.ts(x)` colocated with the module under test.
