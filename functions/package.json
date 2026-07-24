@@ -11,6 +11,8 @@
     "test:integration:ci": "npm run build && firebase emulators:exec --only functions,firestore \"npm run test:integration\"",
     "test:all": "npm run test:run && npm run test:integration:ci",
     "serve": "firebase emulators:start --only functions",
+    "db:seed": "node --experimental-strip-types scripts/seed.ts --fresh",
+    "db:clear": "node --experimental-strip-types scripts/clear.ts",
     "shell": "firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
