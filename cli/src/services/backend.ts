@@ -25,13 +25,16 @@ interface StoreRepoInfoPayload {
 type GetRepositoriesListResponse = { repositories: RepositoryWithId[] };
 
 type TrackSkillsInstallPayload = {
+  owner: string;
   repoSlug: string;
-  skills: string[];
+  defaultBranch: string;
+  skills?: string[];
 };
 
 type TrackSkillsInstallResponse = {
   repoId: string;
-  skills: string[];
+  existedSkills: string[];
+  missingSkills: string[];
 };
 
 export class BackendApiError extends Error {
@@ -83,13 +86,6 @@ export class BackendService {
 
   async getRepositoriesList(): Promise<GetRepositoriesListResponse> {
     return this.request<GetRepositoriesListResponse>('apiGetRepositoriesList');
-  }
-
-  async repositoryExists(repoSlug: string): Promise<RepositoryExistsResponse> {
-    return this.request('apiRepositoryExists', {
-      method: 'POST',
-      body: { repoSlug }
-    });
   }
 
   async deleteRepoInfo(repoUrl: string): Promise<unknown> {

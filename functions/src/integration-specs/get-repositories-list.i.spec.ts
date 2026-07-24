@@ -19,12 +19,12 @@ describe('apiGetRepositoriesList (integration)', () => {
 
   it('should return every persisted repository with its id', async () => {
     const repoA = {
-      repositoryPath: 'octocat/hello-world',
+      repoSlug: 'octocat/hello-world',
       author: 'octocat',
       commitHash: 'a1b2c3d'
     };
     const repoB = {
-      repositoryPath: 'dosandk/SkillStack',
+      repoSlug: 'dosandk/SkillStack',
       author: 'dosandk',
       commitHash: 'e4f5g6h'
     };

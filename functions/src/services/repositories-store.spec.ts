@@ -1,19 +1,80 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ZodError } from 'zod';
 
-const { collection, collGet, add, doc, docGet, docDelete } = vi.hoisted(() => {
-  const collGet = vi.fn();
-  const add = vi.fn();
-  const docGet = vi.fn();
-  const docDelete = vi.fn();
-  const doc = vi.fn(() => ({ get: docGet, delete: docDelete }));
-  const collection = vi.fn(() => ({ get: collGet, add, doc }));
+const {
+  collection,
+  recursiveDelete,
+  rootGet,
+  rootAdd,
+  where,
+  limit,
+  whereGet,
+  repoDoc,
+  repoDocGet,
+  repoDocDelete,
+  repoDocSet,
+  skillsCollGet,
+  skillDoc,
+  skillDocGet,
+  skillDocSet,
+  increment
+} = vi.hoisted(() => {
+  const recursiveDelete = vi.fn();
+  const rootGet = vi.fn();
+  const rootAdd = vi.fn();
+  const whereGet = vi.fn();
+  const limit = vi.fn(() => ({ get: whereGet }));
+  const where = vi.fn(() => ({ limit }));
 
-  return { collection, collGet, add, doc, docGet, docDelete };
+  const skillDocGet = vi.fn();
+  const skillDocSet = vi.fn();
+  const skillDoc = vi.fn(() => ({ get: skillDocGet, set: skillDocSet }));
+  const skillsCollGet = vi.fn();
+  const skillsColl = vi.fn(() => ({ get: skillsCollGet, doc: skillDoc }));
+
+  const repoDocGet = vi.fn();
+  const repoDocDelete = vi.fn();
+  const repoDocSet = vi.fn();
+  const repoDoc = vi.fn(() => ({
+    get: repoDocGet,
+    delete: repoDocDelete,
+    set: repoDocSet,
+    collection: skillsColl
+  }));
+
+  const collection = vi.fn(() => ({
+    get: rootGet,
+    add: rootAdd,
+    doc: repoDoc,
+    where
+  }));
+
+  const increment = vi.fn((by: number) => ({ __increment: by }));
+
+  return {
+    collection,
+    recursiveDelete,
+    rootGet,
+    rootAdd,
+    where,
+    limit,
+    whereGet,
+    repoDoc,
+    repoDocGet,
+    repoDocDelete,
+    repoDocSet,
+    skillsColl,
+    skillsCollGet,
+    skillDoc,
+    skillDocGet,
+    skillDocSet,
+    increment
+  };
 });
 
 vi.mock('firebase-admin/firestore', () => ({
-  getFirestore: () => ({ collection })
+  getFirestore: () => ({ collection, recursiveDelete }),
+  FieldValue: { increment }
 }));
 
 import {
@@ -22,25 +83,19 @@ import {
 } from './repositories-store';
 
 const validRepo = {
-  repositoryPath: 'octocat/hello-world',
-  author: 'octocat',
-  commitHash: 'a1b2c3d'
+  repoSlug: 'octocat/hello-world',
+  defaultBranch: 'main',
+  owner: 'octocat',
+  skills: ['frontend-design']
 };
 
 describe('repositoriesStore', () => {
   beforeEach(() => {
-    collection.mockClear();
-    doc.mockClear();
-    collGet.mockReset();
-    add.mockReset();
-    docGet.mockReset();
-    docDelete.mockReset();
+    vi.clearAllMocks();
   });
 
   it('should return every document merged with its id when listing', async () => {
-    collGet.mockResolvedValue({
-      docs: [{ id: 'r1', data: () => validRepo }]
-    });
+    rootGet.mockResolvedValue({ docs: [{ id: 'r1', data: () => validRepo }] });
 
     const result = await repositoriesStore.list();
 
@@ -49,13 +104,13 @@ describe('repositoriesStore', () => {
   });
 
   it('should return an empty array when listing an empty collection', async () => {
-    collGet.mockResolvedValue({ docs: [] });
+    rootGet.mockResolvedValue({ docs: [] });
 
     await expect(repositoriesStore.list()).resolves.toEqual([]);
   });
 
   it('should return a document merged with its id when it exists', async () => {
-    docGet.mockResolvedValue({
+    repoDocGet.mockResolvedValue({
       exists: true,
       id: 'r1',
       data: () => validRepo
@@ -64,42 +119,97 @@ describe('repositoriesStore', () => {
     const result = await repositoriesStore.get('r1');
 
     expect(result).toEqual({ id: 'r1', ...validRepo });
-    expect(doc).toHaveBeenCalledWith('r1');
+    expect(repoDoc).toHaveBeenCalledWith('r1');
   });
 
   it('should return null when getting a document that does not exist', async () => {
-    docGet.mockResolvedValue({ exists: false });
+    repoDocGet.mockResolvedValue({ exists: false });
 
     await expect(repositoriesStore.get('missing')).resolves.toBeNull();
   });
 
+  it('should return the first matching repository when finding by path', async () => {
+    whereGet.mockResolvedValue({ docs: [{ id: 'r1', data: () => validRepo }] });
+
+    const result = await repositoriesStore.findByPath(validRepo.repoSlug);
+
+    expect(result).toEqual({ id: 'r1', ...validRepo });
+    expect(where).toHaveBeenCalledWith('repoSlug', '==', validRepo.repoSlug);
+    expect(limit).toHaveBeenCalledWith(1);
+  });
+
+  it('should return null when no repository matches the path', async () => {
+    whereGet.mockResolvedValue({ docs: [] });
+
+    await expect(
+      repositoriesStore.findByPath('nobody/nothing')
+    ).resolves.toBeNull();
+  });
+
   it('should write a validated repository and return the document id', async () => {
-    add.mockResolvedValue({ id: 'repo-123' });
+    rootAdd.mockResolvedValue({ id: 'repo-123' });
 
     const id = await repositoriesStore.add(validRepo);
 
     expect(id).toBe('repo-123');
     expect(collection).toHaveBeenCalledWith(REPOSITORIES_COLLECTION);
-    expect(add).toHaveBeenCalledWith(validRepo);
+    expect(rootAdd).toHaveBeenCalledWith(validRepo);
   });
 
   it('should reject invalid repository data without writing it', async () => {
     const invalidRepo = {
-      repositoryPath: '',
+      repoSlug: '',
       author: 'octocat',
       commitHash: 'a1b2c3d'
     };
 
     await expect(repositoriesStore.add(invalidRepo)).rejects.toThrow(ZodError);
-    expect(add).not.toHaveBeenCalled();
+    expect(rootAdd).not.toHaveBeenCalled();
   });
 
   it('should delete the document with the given id when removing', async () => {
-    docDelete.mockResolvedValue(undefined);
+    recursiveDelete.mockResolvedValue(undefined);
 
     await repositoriesStore.remove('r1');
 
-    expect(doc).toHaveBeenCalledWith('r1');
-    expect(docDelete).toHaveBeenCalled();
+    expect(repoDoc).toHaveBeenCalledWith('r1');
+    expect(recursiveDelete).toHaveBeenCalled();
+  });
+
+  it('should list the names of every skill of a repository', async () => {
+    skillsCollGet.mockResolvedValue({ docs: [{ id: 'a' }, { id: 'b' }] });
+
+    await expect(repositoriesStore.listSkillNames('r1')).resolves.toEqual([
+      'a',
+      'b'
+    ]);
+  });
+
+  it('should report whether a skill exists', async () => {
+    skillDocGet.mockResolvedValue({ exists: true });
+
+    await expect(repositoriesStore.hasSkill('r1', 'a')).resolves.toBe(true);
+    expect(skillDoc).toHaveBeenCalledWith('a');
+  });
+
+  it('should bump each skill counter by one and add the skill count to totalInstalls', async () => {
+    skillDocSet.mockResolvedValue(undefined);
+    repoDocSet.mockResolvedValue(undefined);
+
+    await repositoriesStore.recordInstalls('r1', ['a', 'b']);
+
+    expect(skillDoc).toHaveBeenCalledWith('a');
+    expect(skillDoc).toHaveBeenCalledWith('b');
+    expect(skillDocSet).toHaveBeenCalledWith(
+      { installCount: { __increment: 1 } },
+      { merge: true }
+    );
+    expect(skillDocSet).toHaveBeenCalledTimes(2);
+
+    expect(repoDoc).toHaveBeenCalledWith('r1');
+    expect(repoDocSet).toHaveBeenCalledWith(
+      { totalInstalls: { __increment: 2 } },
+      { merge: true }
+    );
   });
 });

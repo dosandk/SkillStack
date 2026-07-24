@@ -11,20 +11,12 @@ export const add = async (repoUrl: string, skills: string[] = []) => {
   try {
     const repoInfo = await githubService.getRepoInfo(repoUrl);
     const { owner, repoName, repoSlug, defaultBranch } = repoInfo;
-    const { exists } = await backendService.repositoryExists(repoSlug);
-
-    if (!exists) {
-      await backendService.storeRepoInfo({
-        owner,
-        repoSlug,
-        defaultBranch,
-        skills
-      });
-    }
 
     const installData = await backendService.trackSkillsInstall({
+      owner,
       repoSlug,
-      skills
+      skills,
+      defaultBranch
     });
 
     // NOTE: temporary keep log
