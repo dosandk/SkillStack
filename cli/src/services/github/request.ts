@@ -6,17 +6,20 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-export const request = async (endpoint: string, options: RequestOptions) => {
+export const request = async (
+  endpoint: string,
+  options?: RequestOptions
+): Promise<unknown> => {
   const baseUrl = 'https://api.github.com';
 
-  const method = options.method?.toUpperCase() || 'GET';
+  const method = options?.method?.toUpperCase() || 'GET';
   const url = `${baseUrl}/${endpoint}`;
 
   const requestOptions: RequestInit = {
     method,
     headers: {
       'Content-Type': 'application/json',
-      ...options.headers
+      ...options?.headers
     }
   };
 
@@ -24,7 +27,7 @@ export const request = async (endpoint: string, options: RequestOptions) => {
     requestOptions.headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
   }
 
-  if (options.body !== undefined) {
+  if (options?.body !== undefined) {
     requestOptions.body = JSON.stringify(options.body) as BodyInit;
   }
 

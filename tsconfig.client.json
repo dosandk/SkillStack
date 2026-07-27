@@ -2,10 +2,24 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.client.tsbuildinfo",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client"
+    ],
     "jsx": "react-jsx"
   },
-  "include": ["client/src"],
-  "exclude": ["client/src/**/*.figma.tsx"]
+  "include": [
+    "client/src"
+  ],
+  "exclude": [
+    "dist",
+    "client/src/**/*.figma.tsx",
+    "cli",
+    "scripts",
+    "functions"
+  ]
 }
