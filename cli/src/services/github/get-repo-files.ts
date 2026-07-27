@@ -1,14 +1,22 @@
 import { request } from './request';
 
-interface RepoFile {
-  path: string;
-  content: Buffer;
+interface GetRepoFilesOptions {
+  owner: string;
+  repoName: string;
+  defaultBranch: string;
 }
 
 interface RepoDownload {
   owner: string;
   repoName: string;
   defaultBranch: string;
+  dirs: string[];
+  files: RepoFile[];
+}
+
+interface RepoFile {
+  path: string;
+  content: Buffer;
 }
 
 interface TreeEntry {
@@ -86,7 +94,7 @@ export async function getRepoFiles({
   owner,
   repoName,
   defaultBranch
-}: RepoDownload): Promise<unknown> {
+}: GetRepoFilesOptions): Promise<RepoDownload> {
   console.log(`Repository: ${owner}/${repoName} (ref: ${defaultBranch})`);
 
   const tree = await getTree(owner, repoName, defaultBranch);

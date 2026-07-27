@@ -1,13 +1,6 @@
 import { request } from './request';
 import { parseRepoPath } from '../../utils';
 
-interface getRepoInfoDto {
-  owner: string;
-  repoName: string;
-  repoSlug: string;
-  defaultBranch: string;
-}
-
 interface GithubRepoDetails {
   full_name: string;
   name: string;
@@ -17,7 +10,14 @@ interface GithubRepoDetails {
   };
 }
 
-export const getRepoInfo = async (repoUrl: string): Promise<getRepoInfoDto> => {
+interface RepoInfo {
+  owner: string;
+  repoName: string;
+  repoSlug: string;
+  defaultBranch: string;
+}
+
+export const getRepoInfo = async (repoUrl: string): Promise<RepoInfo> => {
   const { owner, repo } = parseRepoPath(repoUrl);
 
   // NOTE: fix ts error for second optional arg

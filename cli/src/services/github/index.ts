@@ -1,11 +1,27 @@
 import { getRepoInfo } from './get-repo-info';
 import { getSkillsList } from './get-skills-list';
-import { getRepoFiles } from './get-repo-files.ts';
+import { getRepoFiles } from './get-repo-files';
 
 export { GithubApiError } from './request';
 
-export const githubService = {
+interface GithubService {
+  getRepoInfo: typeof getRepoInfo;
+  getRepoFiles: typeof getRepoFiles;
+  getSkillsList: typeof getSkillsList;
+}
+
+let githubService: GithubService = {
   getRepoInfo,
   getRepoFiles,
   getSkillsList
 };
+
+// NOTE: dynamic import inside the development guard — tsup inlines process.env.NODE_ENV
+// at build time, so the production bundle drops this branch (and the mock module) entirely.
+if (process.env.NODE_ENV === 'development') {
+  const { githubServiceMock } = await import('./mock/index');
+
+  githubService = githubServiceMock as GithubService;
+}
+
+export { githubService };

@@ -1,23 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
+import type { RepoDownload } from '../../services/github';
 
 interface PullResult {
   createdFiles: number;
   createdDirs: number;
   outDir: string;
-}
-
-export interface RepoFile {
-  path: string;
-  content: Buffer;
-}
-
-interface RepoDownload {
-  owner: string;
-  repoName: string;
-  defaultBranch: string;
-  dirs: string[];
-  files: RepoFile[];
 }
 
 export function writeRepoFiles(
