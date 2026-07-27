@@ -23,16 +23,14 @@ export async function trackSkillsInstall(
 
   const repository = await repositoriesStore.findByPath(repoSlug);
 
-  let repoId = repository?.id;
-
-  if (repository === null) {
-    repoId = await storeRepoInfo({
+  const repoId =
+    repository?.id ??
+    (await storeRepoInfo({
       repoSlug,
       skills,
       owner,
       defaultBranch
-    });
-  }
+    }));
 
   const { existedSkills, missingSkills } =
     await repositoriesStore.recordInstalls(repoId, skills);

@@ -89,8 +89,10 @@ export const repositoriesStore = {
     return snapshot.exists;
   },
 
-  // TODO: replace Promis<unknow> to some type according function return
-  async recordInstalls(repoId: string, skillNames: string[]): Promise<unknown> {
+  async recordInstalls(
+    repoId: string,
+    skillNames: string[]
+  ): Promise<{ existedSkills: string[]; missingSkills: string[] }> {
     console.log('repoId', repoId);
     console.log('skillNames', skillNames);
 

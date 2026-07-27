@@ -46,25 +46,27 @@ export function RepositoryList() {
 
   if (repositories.length === 0) {
     return (
-      <Stack alignItems="center" sx={{ py: 6 }}>
+      <Stack alignItems="center" sx={{ py: 6 }} data-testid="repository-empty">
         <NoDataState />
       </Stack>
     );
   }
 
   return (
-    <List>
+    <List data-testid="repository-list">
       {repositories.map(repository => {
         const skillCount = repository.skills?.length ?? 0;
 
         return (
           <ListItem
             key={repository.id}
+            data-testid="repository-item"
             secondaryAction={
               <Chip
                 label={`${skillCount} skills`}
                 color="primary"
                 variant="outlined"
+                data-testid="repository-skill-count"
               />
             }
           >
