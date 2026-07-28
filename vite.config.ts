@@ -17,6 +17,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@shared': path.resolve(__dirname, 'shared'),
       '@eleks-ui/components': path.resolve(
         __dirname,
         'client/src/components/eleks-ui/components'

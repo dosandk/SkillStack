@@ -1,4 +1,4 @@
-import { GITHUB_TOKEN } from '../../config';
+import { GITHUB_TOKEN } from './config';
 
 interface RequestOptions {
   method?: 'GET' | 'POST';

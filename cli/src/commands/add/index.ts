@@ -1,5 +1,4 @@
-import { githubService, GithubApiError } from '../../services/github/index';
-import { backendService } from '../../services/backend';
+import { backendService, githubService, GithubApiError } from '@shared';
 import { writeRepoFiles } from './write-repo-files';
 
 export interface AddOptions {
@@ -31,7 +30,7 @@ export const add = async (repoUrl: string, skills: string[] = []) => {
 
     console.log('repoFiles', repoFiles);
 
-    const writeRepoResult = await writeRepoFiles(repoFiles, '.agents');
+    const writeRepoResult = writeRepoFiles(repoFiles, '.agents');
 
     console.log(writeRepoResult);
 

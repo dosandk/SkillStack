@@ -22,6 +22,9 @@
       ],
       "@eleks-ui/theme": [
         "./client/src/components/eleks-ui/theme/index.tsx"
+      ],
+      "@shared": [
+        "./shared/index.ts"
       ]
     }
   }

@@ -1,5 +1,9 @@
 import { cpSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'tsup';
+
+const cliDir = path.dirname(fileURLToPath(import.meta.url));
 
 // NOTE: read at build time — the `dev` script sets NODE_ENV via cross-env for the tsup
 // process, so it is reliable here (unlike inside the emitted bundle, where it is unset).
@@ -18,6 +22,12 @@ export default defineConfig({
     js: '.js'
   }),
   external: ['dotenv'],
+  esbuildOptions(options) {
+    options.alias = {
+      ...options.alias,
+      '@shared': path.resolve(cliDir, '../shared/index.ts')
+    };
+  },
   // NOTE: temp commented
   onSuccess() {
     // cpSync('src/components-docs', 'dist/components-docs', { recursive: true });

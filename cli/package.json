@@ -20,7 +20,8 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "build": "tsup",
-    "dev": "cross-env NODE_ENV=development tsup --watch"
+    "dev-old": "cross-env NODE_ENV=development tsup --watch",
+    "dev": "tsup --watch"
   },
   "dependencies": {
     "chalk": "^5.6.2",

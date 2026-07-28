@@ -1,5 +1,5 @@
 import { request } from './request';
-import { parseRepoPath } from '../../utils';
+import { parseRepoPath } from '../utils';
 
 interface GithubRepoDetails {
   full_name: string;

@@ -1,14 +1,17 @@
-import { BACKEND_URL } from '../config';
+import { BACKEND_URL } from './config';
 import { getRepoSlug } from '../utils';
 
-type RepositoryPayload = {
+// NOTE: mirrors the backend response shape (functions/src/services/repositories-store.ts
+// RepositoryWithId). Fields other than `id` are optional because stored documents may be
+// incomplete.
+export interface RepositoryWithId {
+  id: string;
   repoSlug: string;
-  author: string;
-  commitHash: string;
-  skills: string[];
-};
-
-type RepositoryWithId = RepositoryPayload & { id: string };
+  defaultBranch: string;
+  owner: string;
+  skills?: string[];
+  totalInstalls?: number;
+}
 
 interface StoreRepoInfo {
   id: string;
@@ -65,16 +68,15 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-interface RepositoryExistsResponse {
-  repoId: string;
-  exists: boolean;
-}
-
 export class BackendService {
   private readonly baseUrl: string | undefined;
 
   constructor(baseUrl: string | undefined) {
     this.baseUrl = baseUrl;
+  }
+
+  run() {
+    console.log('hello backend');
   }
 
   async storeRepoInfo(payload: StoreRepoInfoPayload): Promise<StoreRepoInfo> {
