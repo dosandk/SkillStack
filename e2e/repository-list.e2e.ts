@@ -1,7 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { Browser } from 'puppeteer';
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-import { launchBrowser, openApp } from './support/browser';
 import { clearRepositories, seedRepositories } from './support/firestore';
 import { REPOSITORY_FIXTURES } from './support/fixtures';
 
@@ -11,22 +10,21 @@ interface RenderedRepository {
   skillText: string;
 }
 
-describe('RepositoryList e2e', () => {
-  let browser: Browser;
+// NOTE: Firebase SDK keeps long-poll connections open to the emulators, so
+// 'networkidle' never settles; wait for the document and let each test's
+// waitForSelector gate on the rendered content.
+async function openApp(page: Page): Promise<void> {
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+}
 
-  beforeAll(async () => {
-    browser = await launchBrowser();
-  });
-
-  afterAll(async () => {
-    await browser.close();
-  });
-
-  it('should render seeded repositories with slug, owner and skill count', async () => {
+test.describe('RepositoryList e2e', () => {
+  test('should render seeded repositories with slug, owner and skill count', async ({
+    page
+  }) => {
     await clearRepositories();
     await seedRepositories(REPOSITORY_FIXTURES);
 
-    const page = await openApp(browser);
+    await openApp(page);
     await page.waitForSelector('[data-testid="repository-list"]');
 
     const rendered = await page.$$eval(
@@ -57,10 +55,12 @@ describe('RepositoryList e2e', () => {
     expect(sortBySlug(rendered)).toEqual(sortBySlug(expected));
   });
 
-  it('should render empty state when no repositories exist', async () => {
+  test('should render empty state when no repositories exist', async ({
+    page
+  }) => {
     await clearRepositories();
 
-    const page = await openApp(browser);
+    await openApp(page);
     await page.waitForSelector('[data-testid="repository-empty"]');
 
     const itemCount = await page.$$eval(

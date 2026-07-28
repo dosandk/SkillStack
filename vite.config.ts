@@ -27,5 +27,8 @@ export default defineConfig({
         'client/src/components/eleks-ui/theme'
       )
     }
+  },
+  define: {
+    'process.env.GITHUB_TOKEN': JSON.stringify(process.env.GITHUB_TOKEN)
   }
 });

@@ -1,7 +1,7 @@
 export const PROJECT_ID = 'skillstack-724d8';
 
 // NOTE: dedicated e2e port (not Vite's default 5173) so the suite never clashes
-// with a running `npm run dev`. Kept in sync with the port in global-setup.ts.
+// with a running `npm run dev`. Consumed by the webServer in playwright.config.ts.
 export const APP_PORT = 5273;
 
 export const APP_URL = `http://localhost:${APP_PORT}`;
