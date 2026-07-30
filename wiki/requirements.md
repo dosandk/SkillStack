@@ -4,36 +4,44 @@ type: requirements-traceability
 parent: wiki/architecture.md
 status: final
 created: 2026-07-19
-updated: 2026-07-21
+updated: 2026-07-30
 ---
 
 # Requirements — SkillStack
 
-| id | Requirement |
-| --- | --- |
-| <a id="fr-cli1"></a>FR-CLI1 | `npx skillstack add <repo-url> [--skill <name>]` installs skill(s) into the local project |
-| <a id="fr-cli2"></a>FR-CLI2 | Discover skills up to nesting depth 3; deeper not allowed |
-| <a id="fr-cli3"></a>FR-CLI3 | Once `SKILL.md` found, take the whole skill directory (any sub-depth) |
-| <a id="fr-cli4"></a>FR-CLI4 | No `--skill` given → list all discovered skills, user picks one or more |
-| <a id="fr-cli5"></a>FR-CLI5 | Backend check: repo unknown → warn "unvalidated," install anyway if user agrees |
-| <a id="fr-cli6"></a>FR-CLI6 | Repo known + validated + commit changed → let user choose stored (validated) vs. latest |
-| <a id="fr-cli7"></a>FR-CLI7 | Repo known + not validated + commit changed → just install latest, no choice prompt |
-| <a id="fr-cli8"></a>FR-CLI8 | After scan, prompt for target platform(s) — Claude/Cursor/Copilot, multi-select — install to the right folder per platform |
-| <a id="fr-cli9"></a>FR-CLI9 | After install, fire telemetry — record the install, mark repo/skill(s) pending validation |
-| <a id="fr-ui1"></a>FR-UI1 | Anyone can search validated skills (no login required) |
-| <a id="fr-ui2"></a>FR-UI2 | Search covers both individual skills and whole repositories |
-| <a id="fr-ui3"></a>FR-UI3 | GitHub login |
-| <a id="fr-ui4"></a>FR-UI4 | Profile page shows GitHub info |
-| <a id="fr-ui5"></a>FR-UI5 | Logged-in user uploads a repo/skill via URL → appears pending |
-| <a id="fr-ui6"></a>FR-UI6 | "Validate" button triggers validation |
-| <a id="fr-ui7"></a>FR-UI7 | Shows status + structured critical issues vs. non-critical recommendations |
-| <a id="fr-ui8"></a>FR-UI8 | Manual validation always re-fetches latest from GitHub, never cache |
-| <a id="fr-be1"></a>FR-BE1 | One `repositories` doc (owner, repo ref, commit hash, README blurb, calculated fields, timestamps) + `skills` subcollection |
-| <a id="fr-be2"></a>FR-BE2 | Never store skill file content — commit hash only. Cross-cutting with [AD-6](architecture-invariants.md#ad-6)/[AD-7](architecture-invariants.md#ad-7). |
-| <a id="fr-be3"></a>FR-BE3 | Search responses blend stored data + live GitHub metadata (stars, etc.) |
-| <a id="fr-be4"></a>FR-BE4 | Daily auto-validation for unvalidated skills + on-demand for the owner |
-| <a id="fr-be5"></a>FR-BE5 | Validation = Anthropic SDK check — security/convention (critical) + best practices (non-critical) |
-| <a id="nfr1"></a>NFR1 | Firestore writes restricted to Cloud Functions only. See [AD-1](architecture-invariants.md#ad-1)/[AD-3](architecture-invariants.md#ad-3). |
-| <a id="nfr2"></a>NFR2 | No skill file content stored server-side. Cross-cutting with [AD-6](architecture-invariants.md#ad-6)/[AD-7](architecture-invariants.md#ad-7). |
-| <a id="nfr3"></a>NFR3 | Validation always fresh, never cached |
-| <a id="nfr4"></a>NFR4 | Discovery capped at nesting depth 3 |
+| id                            | Requirement                                                                                                                                                                                                                                                                         |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| <a id="fr-cli1"></a>FR-CLI1   | `npx skillstack add <repo-url> [--skill <name>]` installs skill(s) into the local project                                                                                                                                                                                           |
+| <a id="fr-cli1a"></a>FR-CLI1a | First install: New repo → backend scans, CLI shows skills, user selects, backend writes to DB with validation status "pending" for all, install counts set/calculated, CLI installs on machine                                                                                      |
+| <a id="fr-cli1b"></a>FR-CLI1b | Second install, same commit: Commit hash matches → show skills with existing validation statuses, pass selections to backend, calculate install counts for new skills, set "pending" for new skills only, CLI installs                                                              |
+| <a id="fr-cli1c"></a>FR-CLI1c | Second install, different commit: Commit hash differs → show message about new version, if user proceeds: update commit hash, compare skills (delete removed, add new, increment existing), recalculate aggregated install count, set "pending" for repo + all skills, CLI installs |
+| <a id="fr-cli1d"></a>FR-CLI1d | Install during validation: Commit differs + validation "in progress" → CLI installs, no DB writes                                                                                                                                                                                   |
+| <a id="fr-cli2"></a>FR-CLI2   | Discover skills up to nesting depth 3; once `SKILL.md` found, take whole skill directory (any sub-depth)                                                                                                                                                                                                                           |
+| <a id="fr-cli3"></a>FR-CLI3   | Backend returns unified response: metadata AND file content for CLI/client install                                                                                                                                                                                                               |
+| <a id="fr-cli4"></a>FR-CLI4   | No `--skill` given → backend returns all discovered skills + file content; user picks one or more, install from backend response                                                                                                                                                    |
+| <a id="fr-cli5"></a>FR-CLI5   | Backend check: repo unknown → warn "unvalidated," install anyway if user agrees                                                                                                                                                                                                     |
+| <a id="fr-cli8"></a>FR-CLI8   | After scan, prompt for target platform(s) — Claude/Cursor/Copilot, multi-select — install to the right folder per platform                                                                                                                                                          |
+| <a id="fr-cli9"></a>FR-CLI9   | After install, fire telemetry — record the install, mark repo/skill(s) pending validation                                                                                                                                                                                           |
+| <a id="fr-cli10"></a>FR-CLI10 | CLI can install skills from a shared favorites link                                                                                                                                                                                                                                 |
+| <a id="fr-ui1"></a>FR-UI1     | Anyone can search validated skills (no login required)                                                                                                                                                                                                                              |
+| <a id="fr-ui2"></a>FR-UI2     | Search covers both individual skills and whole repositories                                                                                                                                                                                                                         |
+| <a id="fr-ui3"></a>FR-UI3     | GitHub login                                                                                                                                                                                                                                                                        |
+| <a id="fr-ui4"></a>FR-UI4     | Profile page shows GitHub info                                                                                                                                                                                                                                                      |
+| <a id="fr-ui7"></a>FR-UI7     | Shows status + structured critical issues vs. non-critical recommendations                                                                                                                                                                                                          |
+| <a id="fr-ui9"></a>FR-UI9     | Logged-in user can favorite any repo (all skills) or individual skill(s)                                                                                                                                                                                                            |
+| <a id="fr-ui10"></a>FR-UI10   | User sees "Favorites" tab showing favorited repos/skills                                                                                                                                                                                                                            |
+| <a id="fr-ui11"></a>FR-UI11   | User can share favorites collection via generated link                                                                                                                                                                                                                              |
+| <a id="fr-ui12"></a>FR-UI12   | Anyone with link can view favorites collection in UI                                                                                                                                                                                                                                |
+| <a id="fr-be1"></a>FR-BE1     | One `repositories` doc (owner, repo ref, commit hash, README blurb, calculated fields, timestamps) + `skills` subcollection                                                                                                                                                         |
+| <a id="fr-be2"></a>FR-BE2     | Never store skill file content in Firestore — commit hash only. Backend returns file content in API responses but does not persist it. Cross-cutting with [AD-6](architecture-invariants.md#ad-6)/[AD-7](architecture-invariants.md#ad-7).                                          |
+| <a id="fr-be3"></a>FR-BE3     | Search responses blend stored data + live GitHub metadata (stars, etc.)                                                                                                                                                                                                             |
+| <a id="fr-be4"></a>FR-BE4     | Daily auto-validation for unvalidated skills. Validation marks status "in progress" before processing                                                                                                                                                                               |
+| <a id="fr-be5"></a>FR-BE5     | Validation = Anthropic SDK check — security/convention (critical) + best practices (non-critical)                                                                                                                                                                                   |
+| <a id="fr-be6"></a>FR-BE6     | Repo validation status: "pending" \| "in progress" \| "validated" \| "failed"                                                                                                                                                                                                       |
+| <a id="fr-be7"></a>FR-BE7     | Skill validation field: `valid: true/false`                                                                                                                                                                                                                                         |
+| <a id="fr-be8"></a>FR-BE8     | "validated" = all skills valid; "failed" = at least one skill invalid                                                                                                                                                                                                               |
+| <a id="fr-be9"></a>FR-BE9     | Validation process: backend queries all "pending" repos, loads into in-memory array, changes status to "in progress" when processing starts                                                                                                                                         |
+| <a id="nfr1"></a>NFR1         | Firestore writes restricted to Cloud Functions only. See [AD-1](architecture-invariants.md#ad-1)/[AD-3](architecture-invariants.md#ad-3).                                                                                                                                           |
+| <a id="nfr2"></a>NFR2         | No skill file content stored in Firestore. Backend may return file content in API responses but never persists it. Cross-cutting with [AD-6](architecture-invariants.md#ad-6)/[AD-7](architecture-invariants.md#ad-7).                                                              |
+| <a id="nfr3"></a>NFR3         | Validation fetches content from GitHub at the stored commit hash, never cached — always makes a fresh API call                                                                                                                                                                      |
+| <a id="nfr4"></a>NFR4         | Discovery performance: depth-3 cap prevents unbounded tree walks; backend owns GitHub token to avoid user rate limits                                                                                                                                                                                                                                                 |

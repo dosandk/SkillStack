@@ -1,8 +1,8 @@
 # Story Catalogue — SkillStack
 
-Last updated: 2026-07-21
+Last updated: 2026-07-29
 
-Derived from [../project_description.md](../project_description.md) and
+Derived from [../requirements.md](../requirements.md) and
 [../architecture.md](../architecture.md) (the architecture spine — read it first; every
 story below builds on its invariants rather than re-deciding them). The spine's
 AD-1..AD-13 rules themselves live in [../architecture-invariants.md](../architecture-invariants.md) —
@@ -27,36 +27,36 @@ no user-visible workflow. Foundational work (the Firestore schema, `firestore.ru
 routing setup) is a task inside whichever story first needs it, per that story's own
 Tasks table.
 
+See [../architecture-invariants.md](../architecture-invariants.md) for the binding architectural decisions (AD-1..AD-15) that constrain every story and task.
+
 ## Catalogue
 
 | ID                        | Title                                            | Domain(s)              | Status  | Owner       |
 | -------------------------- | ------------------------------------------------- | ----------------------- | ------- | ----------- |
 | story-catalog-search       | Browse & Search Validated Skills                  | frontend, backend, platform | planned | @unassigned |
 | story-auth-profile         | GitHub Login & Profile                            | frontend                | planned | @unassigned |
-| story-upload-repo          | Upload a Repository                               | frontend, backend       | planned | @unassigned |
+| story-favorites            | Favorites & Sharing                               | frontend, backend       | planned | @unassigned |
 | story-validate-skill       | Validate a Repository/Skill                       | frontend, backend       | planned | @unassigned |
-| story-cli-install-new      | CLI — Install Skills from a Repo (first-time)      | cli, backend            | planned | @unassigned |
-| story-cli-install-update   | CLI — Reinstall/Update an Already-Tracked Repo     | cli, backend            | planned | @unassigned |
+| story-cli-install-flows    | CLI — Install Skills (All Flows)                  | cli, backend            | planned | @unassigned |
 
 ## Build order (high level)
 
-1. `story-catalog-search` — baseline. Establishes the Firestore schema, deny-all
-   security rules, and the client's routing setup, alongside its own search UI. Every
-   other story depends on this schema/routing existing.
-2. `story-auth-profile` — needs routing from (1). Unlocks a real logged-in identity for
+1. `story-cli-install-flows` — foundational story. Establishes the Firestore schema (SS-101 with `"in progress"` status and `valid: boolean`),
+   implements `scanRepository` with four-branch logic (SS-301 — discovery + file content + commit comparison + `"in progress"` detection), and all CLI install flows (first-time, same commit, different commit, during validation).
+   Primary use case for the backend architecture ([AD-6](../architecture-invariants.md#ad-6), [AD-7](../architecture-invariants.md#ad-7)).
+2. `story-catalog-search` — needs (1)'s schema. Establishes deny-all security rules,
+   the client's routing setup, and the search UI. Reuses schema from (1).
+3. `story-auth-profile` — needs routing from (2). Unlocks a real logged-in identity for
    everything that follows.
-3. `story-upload-repo` — needs (1)'s schema and (2)'s logged-in user. Its
-   `scanRepository` function is shared with `story-cli-install-new`.
-4. `story-validate-skill` — needs (3) to have created something pending to validate.
-5. `story-cli-install-new` — needs (3)'s `scanRepository`. Can be built in parallel with
-   (4) once (3) is done.
-6. `story-cli-install-update` — extends (5)'s scan/install pipeline with the
-   already-tracked-repo branch.
+4. `story-favorites` — needs (1)'s `scanRepository`, (2)'s routing, and (3)'s logged-in user.
+   Introduces userFavorites collection and share functionality.
+5. `story-validate-skill` — needs (4) to have created something pending to validate.
+   Updated for `"in progress"` status transitions and `valid: boolean` model.
 
 **Note on existing code:** `client/`, `functions/`, and `cli/` all have some code
-already (GitHub auth wiring, a minimal `repositories` collection, a CLI `pull` command).
+already (GitHub auth wiring, a minimal `repositories` collection, temporary skill discovery in `shared/github-api`).
 None of it fully matches this catalogue's schema or the architecture spine's invariants
-yet (e.g. no `skills` subcollection, no `firestore.rules`, no `scanRepository`, CLI does
-its own ad hoc tree walk instead of calling the backend) — each task above says exactly
+yet (e.g. no `skills` subcollection with `valid: boolean`, no `"in progress"` status, no `firestore.rules`, `scanRepository` needs four-branch logic per [AD-7](../architecture-invariants.md#ad-7),
+CLI's file write logic needs updating for backend response format, no `userFavorites` collection) — each task above says exactly
 what needs to change, so treat existing code as a starting point to rework, not as
 already satisfying a task.

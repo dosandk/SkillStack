@@ -7,9 +7,9 @@ paradigm: 'Layered architecture with a single server-authoritative gateway'
 scope: 'Whole platform — client (web), functions (backend), cli — brownfield; ratifies what is already built'
 status: final
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-30
 binds: []
-sources: ['wiki/project_description.md']
+sources: ['wiki/requirements.md']
 companions: ['wiki/architecture-invariants.md', 'wiki/requirements.md']
 ---
 
@@ -28,12 +28,12 @@ other code touches Firestore.
 | --------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | HTTP adapter          | `functions/src/functions/*.ts`      | Parse request, call one service, map errors to HTTP status. No Firestore, no business rules.                                                                                                   |
 | Service / store       | `functions/src/services/*-store.ts` | One Firestore collection's Zod schema + CRUD. The only code with Firestore access.                                                                                                             |
-| Client gateway client | `client/src/lib/api.ts`             | The one place the SPA calls `functions/`. No component calls `fetch()` directly.                                                                                                               |
-| CLI gateway calls     | `cli/src/commands/**`               | Calls `functions/` for anything Firestore-touching; talks to GitHub directly only for raw file content (see [AD-6](architecture-invariants.md#ad-6), [AD-7](architecture-invariants.md#ad-7)). |
+| Client gateway client | `client/src/routes/**`              | SPA routes call `functions/` via `@shared/firebase-cloude-api` (route loaders/actions). No component calls `fetch()` directly.                                                                 |
+| CLI gateway calls     | `cli/src/commands/**`               | Calls `functions/` via `@shared/firebase-cloude-api` for discovery + file content + validation status (see [AD-6](architecture-invariants.md#ad-6), [AD-7](architecture-invariants.md#ad-7)). |
 
 ## Invariants & Rules
 
-See [`architecture-invariants.md`](architecture-invariants.md) for the full AD-1..AD-13 list and the dependency-direction diagram.
+See [`architecture-invariants.md`](architecture-invariants.md) for the full AD-1..AD-15 list and the dependency-direction diagram.
 
 ## Consistency Conventions
 
@@ -41,7 +41,73 @@ See [`architecture-invariants.md`](architecture-invariants.md) for the full AD-1
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Naming                | Files: kebab-case. Exported Cloud Functions: `api` + PascalCase (`apiWriteRepository`, `apiGetRepositoriesList`).                                                                                                                                      |
 | Data & formats        | Firestore doc id = auto-generated ref id. Errors: JSON body `{ error: string }` with a meaningful HTTP status (400 invalid payload, 500 unexpected failure). Zod validates at the store boundary (inside `services/*-store.ts`), never in the adapter. |
-| State & cross-cutting | Logging via `firebase-functions/logger` (structured). No direct Firestore/Firebase-admin credentials outside `functions/`.                                                                                                                             |
+| State & cross-cutting | Logging via `firebase-functions/logger` (structured). No direct Firestore/Firebase-admin credentials outside `functions/`. Path alias `@shared` points to `shared/index.ts` (configured in `tsconfig.base.json`, `vite.config.ts`, `cli/tsup.config.ts`). |
+
+## Data Model
+
+Firestore schema (see [AD-1](architecture-invariants.md#ad-1), [AD-2](architecture-invariants.md#ad-2) for access rules):
+
+### `repositories` collection
+
+```typescript
+{
+  // Core identification
+  owner: string,                    // GitHub repo owner
+  repoSlug: string,                 // Full repo path (e.g., "owner/repo-name")
+  defaultBranch: string,            // Default branch name
+  commitHash: string,               // Git commit SHA that was validated/installed
+  
+  // Metadata
+  readmeBlurb: string,              // Short description from repo README
+  
+  // Calculated/aggregate fields (see AD-11, AD-13)
+  totalInstalls: number,            // Sum of all skills' installCount
+  validationStatus: "pending" | "in progress" | "validated" | "failed",  // Rollup of skill statuses
+  
+  // Timestamps
+  createdAt: Timestamp,             // When first added to catalog
+  updatedAt: Timestamp              // Last modified
+}
+```
+
+### `repositories/{repoId}/skills` subcollection
+
+```typescript
+// Document ID = skill name/path
+{
+  name: string,                     // Skill name (matches doc ID)
+  path: string,                     // Relative path in repo
+  
+  // Validation
+  valid: boolean,                   // true = passed validation, false = failed
+  findings: Array<{                 // Results from Anthropic validation (FR-BE5)
+    severity: "critical" | "recommendation",
+    message: string
+  }>,
+  
+  // Usage tracking
+  installCount: number              // Incremented with each install (AD-11)
+}
+```
+
+### `userFavorites` collection
+
+```typescript
+// Document ID = userId (from Firebase Auth)
+{
+  userId: string,                   // Firebase Auth user ID
+  favorites: Array<{
+    repoId: string,                 // Reference to repositories/{repoId}
+    skillNames: string[],           // Empty array = all skills, specific names = partial selection
+    addedAt: Timestamp
+  }>,
+  shareableLink: string,            // Generated token for sharing (AD-14)
+  createdAt: Timestamp,
+  updatedAt: Timestamp
+}
+```
+
+**Note:** Skill file content is never stored in Firestore (NFR2). The skill details page fetches content directly from GitHub using `path` + `commitHash`.
 
 ## Stack
 
@@ -66,14 +132,16 @@ See [`architecture-invariants.md`](architecture-invariants.md) for the full AD-1
 ```text
 {repo-root}/
   client/       # React 19 + Vite SPA. src/routes/<page>/ (component + loader/action),
-                # src/lib/api.ts (gateway client), src/lib/auth.tsx, src/lib/firebase.ts,
-                # src/components/eleks-ui/ (vendored)
+                # src/lib/auth.tsx, src/lib/firebase.ts, src/components/eleks-ui/ (vendored).
+                # Calls backend via @shared/firebase-cloude-api
   functions/    # Cloud Functions backend — sole Firestore gateway (AD-1)
     src/functions/   # thin HTTP adapters (AD-2)
     src/services/    # one *-store.ts per Firestore collection (AD-2)
   cli/          # separate npm package (skillstack-cli), tsup build
     src/commands/<verb>/   # pipeline of single-responsibility modules (AD-8)
-  wiki/         # project_description.md, architecture.md + architecture-invariants.md, stories/, tasks/
+  shared/       # code shared between client/ and cli/ (never functions/) — backend API client
+                # (firebase-cloude-api) and utilities. Path alias: @shared
+  wiki/         # requirements.md, architecture.md + architecture-invariants.md, stories/, tasks/
 ```
 
 AD ids in the tree above ([AD-1](architecture-invariants.md#ad-1),
@@ -83,18 +151,8 @@ resolve to `architecture-invariants.md`.
 **Deployment & environments.** Single Firebase project (`skillstack-724d8`), no separate
 staging project. Hosting auto-deploys via GitHub Actions on push to `main`
 (`firebase-hosting-merge.yml`) plus PR preview channels (`firebase-hosting-pull-request.yml`).
-Cloud Functions deploy manually today (`npm run deploy` in `functions/`) — not yet wired into
-CI (known gap, not a decision).
+Cloud Functions deploy via `npm run deploy` in `functions/`.
 
 ## Requirements Traceability
 
 See [`requirements.md`](requirements.md) for the full FR/NFR list.
-
-## Deferred
-
-- **CI for `functions/` deploy.** Currently manual; wiring it into GitHub Actions is a known
-  gap, not an architectural decision to make now.
-- **GitHub API rate-limit budget.** The CLI calls the GitHub API unauthenticated (from each
-  user's own IP); `functions/` will likely need its own token for the higher volume of
-  `scanRepository`/validation calls. Reconciling the two isn't addressed here — acceptable to
-  leave open at this project's current scale, revisit if rate-limiting becomes a real problem.

@@ -4,7 +4,7 @@ title: GitHub Login & Profile
 status: planned
 domain: frontend
 created: 2026-07-19
-updated: 2026-07-19
+updated: 2026-07-30
 ---
 
 # Story: GitHub Login & Profile
@@ -12,7 +12,7 @@ updated: 2026-07-19
 ## User story
 
 As a visitor, I want to log in with GitHub, so that I have an identity the app can use
-to let me upload and manage my own repositories/skills.
+to let me favorite and manage my own repositories/skills.
 
 ## Workflow
 
@@ -56,4 +56,4 @@ to their profile page
 ## Dependencies
 
 - Depends on: story-catalog-search (routing setup)
-- Used by: story-upload-repo, story-validate-skill
+- Used by: story-favorites, story-validate-skill
