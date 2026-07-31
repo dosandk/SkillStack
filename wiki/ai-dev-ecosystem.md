@@ -55,15 +55,15 @@ only, see [§8](#8-optional-cursor-hooks)).
 
 ## 2. Design Principles
 
-| Principle | How the ecosystem honors it |
-| --- | --- |
-| Maximize reuse | Scaffolders consume shared Templates; rules are referenced (via `@`) rather than copy-pasted; the architecture invariants are **included**, never paraphrased. |
-| Minimize duplication | One capability per concern. The AD-1..AD-13 invariants live in exactly one file and are surfaced through a single rule. |
-| Separate concerns | Rules constrain, Skills/Commands produce, Agents review, Templates supply boilerplate. No component wears two of these hats. |
-| Small composable units | A task flows through discrete steps (scaffold → implement → test → review → commit), each independently invokable. |
-| No overlapping responsibilities | Global vs module rules are partitioned by scope; scaffolders are partitioned by unit type; reviewers by concern. |
-| Scale with the project | Adding a module or a new implementation-unit type is a documented, repeatable act (see [§10](#10-extensibility)). |
-| Human-in-the-loop | Every mutating or irreversible step (commit, deploy, status change, review acceptance) is gated on explicit confirmation. |
+| Principle                       | How the ecosystem honors it                                                                                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Maximize reuse                  | Scaffolders consume shared Templates; rules are referenced (via `@`) rather than copy-pasted; the architecture invariants are **included**, never paraphrased. |
+| Minimize duplication            | One capability per concern. The AD-1..AD-13 invariants live in exactly one file and are surfaced through a single rule.                                        |
+| Separate concerns               | Rules constrain, Skills/Commands produce, Agents review, Templates supply boilerplate. No component wears two of these hats.                                   |
+| Small composable units          | A task flows through discrete steps (scaffold → implement → test → review → commit), each independently invokable.                                             |
+| No overlapping responsibilities | Global vs module rules are partitioned by scope; scaffolders are partitioned by unit type; reviewers by concern.                                               |
+| Scale with the project          | Adding a module or a new implementation-unit type is a documented, repeatable act (see [§10](#10-extensibility)).                                              |
+| Human-in-the-loop               | Every mutating or irreversible step (commit, deploy, status change, review acceptance) is gated on explicit confirmation.                                      |
 
 ## 3. Ecosystem Overview
 
@@ -74,7 +74,7 @@ Five Cursor primitives plus repo Templates, layered by role:
   relevance).
 - **Commands** — user-invoked slash actions (explicit, parameterized).
 - **Custom Agents** — reviewer and orchestrator personas with a narrow mandate.
-- **Cursor Hooks** *(optional)* — deterministic guardrails on tool events.
+- **Cursor Hooks** _(optional)_ — deterministic guardrails on tool events.
 - **Templates** — inert boilerplate files that scaffolders instantiate.
 
 ```mermaid
@@ -111,8 +111,6 @@ forces the full chain.
       naming-conventions.mdc
       testing-standards.mdc
       documentation-standards.mdc
-      git-and-commit-conventions.mdc
-      repository-conventions.mdc
     client/                           #   globs: ["client/**"]
       client-architecture.mdc
       client-eleks-ui.mdc
@@ -150,16 +148,16 @@ wiki/
 
 ### Naming conventions
 
-| Kind | Convention | Example |
-| --- | --- | --- |
-| Rule file | `<concern>.mdc`, kebab-case; organized in subfolders by scope | `functions/functions-architecture.mdc` |
-| Rule scope (global) | Subfolder `.cursor/rules/global/`; `alwaysApply: true` in frontmatter | `global/testing-standards.mdc` |
-| Rule scope (module) | Subfolder per module; `globs: ["<module>/**"]` in frontmatter | `client/client-architecture.mdc` |
-| Skill dir | `<kebab-name>/SKILL.md` | `author-e2e-tests/SKILL.md` |
-| Command | `/<kebab-name>` (file `<kebab-name>.md`) | `/code-review`, `/refactor` |
-| Agent | Scoped under flow: `<flow>/<role>` | `review/orchestrator`, `refactor/requirements-analyzer` |
-| Template | `<thing>.template.<ext>` | `scaffold-service-store.template.ts` |
-| Code files | kebab-case (matches [`architecture.md`](architecture.md) convention) | `github-client.ts` |
+| Kind                | Convention                                                            | Example                                                 |
+| ------------------- | --------------------------------------------------------------------- | ------------------------------------------------------- |
+| Rule file           | `<concern>.mdc`, kebab-case; organized in subfolders by scope         | `functions/functions-architecture.mdc`                  |
+| Rule scope (global) | Subfolder `.cursor/rules/global/`; `alwaysApply: true` in frontmatter | `global/testing-standards.mdc`                          |
+| Rule scope (module) | Subfolder per module; `globs: ["<module>/**"]` in frontmatter         | `client/client-architecture.mdc`                        |
+| Skill dir           | `<kebab-name>/SKILL.md`                                               | `author-e2e-tests/SKILL.md`                             |
+| Command             | `/<kebab-name>` (file `<kebab-name>.md`)                              | `/code-review`, `/refactor`                             |
+| Agent               | Scoped under flow: `<flow>/<role>`                                    | `review/orchestrator`, `refactor/requirements-analyzer` |
+| Template            | `<thing>.template.<ext>`                                              | `scaffold-service-store.template.ts`                    |
+| Code files          | kebab-case (matches [`architecture.md`](architecture.md) convention)  | `github-client.ts`                                      |
 
 **Rule scoping** is expressed in `.mdc` frontmatter, not by path: `alwaysApply: true`
 for global rules; `globs: <pattern>` for module rules (auto-attached when a matching
@@ -180,16 +178,14 @@ Always-applied or auto-attached regardless of module. Two already exist
 [`error-handling-logging.mdc`](../.cursor/rules/error-handling-logging.mdc)); the
 rest are new.
 
-| Rule | Applies | Responsibility |
-| --- | --- | --- |
-| `global-architecture-invariants` | always | **Includes** [`architecture-invariants.md`](architecture-invariants.md) verbatim (AD-1..AD-13) so there is no second copy to drift. |
-| `code-comments` *(exists)* | always | `NOTE:`-prefixed, English, exception-only comments. |
-| `error-handling-logging` *(exists)* | always | Throw `Error` with context + `cause`; correct log levels; no secrets in messages. |
-| `global-naming-conventions` | always | File kebab-case; exported Cloud Functions `api` + PascalCase; other cross-cutting naming. |
-| `global-git-and-commit-conventions` | always | Git Flow branch model + Conventional Commits per `commitlint.config.js`. |
-| `global-testing-standards` | always | Story = E2E, task = unit/integration; AAA structure; where each test lives per package; vitest. |
-| `global-documentation-standards` | always | Docs-sync: when scope/decisions change, update the matching `wiki/` file (stories, tasks, invariants). |
-| `global-repository-conventions` | always | Monorepo layout, package boundaries, the "`functions/` is the sole Firestore gateway" boundary at repo level. |
+| Rule                                | Applies | Responsibility                                                                                                                      |
+| ----------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | --- |
+| `global-architecture-invariants`    | always  | **Includes** [`architecture-invariants.md`](architecture-invariants.md) verbatim (AD-1..AD-13) so there is no second copy to drift. |
+| `code-comments` _(exists)_          | always  | `NOTE:`-prefixed, English, exception-only comments.                                                                                 |
+| `error-handling-logging` _(exists)_ | always  | Throw `Error` with context + `cause`; correct log levels; no secrets in messages.                                                   |
+| `global-naming-conventions`         | always  | File kebab-case; exported Cloud Functions `api` + PascalCase; other cross-cutting naming.                                           |     |
+| `global-testing-standards`          | always  | Story = E2E, task = unit/integration; AAA structure; where each test lives per package; vitest.                                     |
+| `global-documentation-standards`    | always  | Docs-sync: when scope/decisions change, update the matching `wiki/` file (stories, tasks, invariants).                              |
 
 ### 5.2 E2E Test Authoring — **recommended as a Skill**
 
@@ -239,11 +235,11 @@ flowchart TD
   Triage --> Report["Findings report to developer (human decides)"]
 ```
 
-| Agent | Reviews against |
-| --- | --- |
-| `review/requirements-reviewer` | [`requirements.md`](requirements.md) FR/NFR ids + the story's acceptance / E2E scenarios. |
-| `review/architecture-reviewer` | AD-1..AD-15 + the relevant module architecture rule (layering, gateway, dependency direction). |
-| `review/security-reviewer` | Auth-token verification (AD-9), public `shareableLink` exception, secrets via Secret Manager (AD-10), deny-all rules (AD-3), input validation at boundaries, no secrets in logs. |
+| Agent                          | Reviews against                                                                                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `review/requirements-reviewer` | [`requirements.md`](requirements.md) FR/NFR ids + the story's acceptance / E2E scenarios.                                                                                        |
+| `review/architecture-reviewer` | AD-1..AD-15 + the relevant module architecture rule (layering, gateway, dependency direction).                                                                                   |
+| `review/security-reviewer`     | Auth-token verification (AD-9), public `shareableLink` exception, secrets via Secret Manager (AD-10), deny-all rules (AD-3), input validation at boundaries, no secrets in logs. |
 
 The orchestrator delegates module-specific depth to the module reviewers
 ([§6](#6-module-components)) and merges everything into one triaged report. It never
@@ -277,12 +273,12 @@ flowchart TD
   Gate2 -->|Done| Complete["Complete"]
 ```
 
-| Agent | Analyzes |
-| --- | --- |
-| `refactor/requirements-analyzer` | Code conformance to [`requirements.md`](requirements.md) FR/NFR ids; suggests refactorings to meet unmet requirements. |
-| `refactor/architecture-analyzer` | Code conformance to AD-1..AD-15 from [`architecture-invariants.md`](architecture-invariants.md); leverages existing rules (`code-comments`, `error-handling-logging`, `naming-conventions`) for pattern enforcement. |
-| `check-duplicates` (skill) | Copy-paste + semantic duplication detection; reused from existing skill infrastructure. |
-| `refactor/client-analyzer` / `functions-analyzer` / `cli-analyzer` | Module-specific analysis using the module's architecture + testing rules. |
+| Agent                                                              | Analyzes                                                                                                                                                                                                             |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `refactor/requirements-analyzer`                                   | Code conformance to [`requirements.md`](requirements.md) FR/NFR ids; suggests refactorings to meet unmet requirements.                                                                                               |
+| `refactor/architecture-analyzer`                                   | Code conformance to AD-1..AD-15 from [`architecture-invariants.md`](architecture-invariants.md); leverages existing rules (`code-comments`, `error-handling-logging`, `naming-conventions`) for pattern enforcement. |
+| `check-duplicates` (skill)                                         | Copy-paste + semantic duplication detection; reused from existing skill infrastructure.                                                                                                                              |
+| `refactor/client-analyzer` / `functions-analyzer` / `cli-analyzer` | Module-specific analysis using the module's architecture + testing rules.                                                                                                                                            |
 
 **Pattern enforcement note:** Design patterns, SOLID principles, and best practices are handled
 by `refactor/architecture-analyzer` and module analyzers via existing `.cursor/rules/` rather than
@@ -290,6 +286,7 @@ a separate patterns analyzer. This avoids duplication and ensures consistency wi
 already enforced during implementation.
 
 **Hard constraints:**
+
 - Never auto-apply refactorings without explicit approval
 - Human gate after analysis phase (show plan)
 - Human checkpoint after each implementation phase
@@ -308,18 +305,18 @@ rules, scaffolders, and a reviewer, all sharing the global layer above.
 
 **Module rules**
 
-| Rule | Responsibility |
-| --- | --- |
+| Rule                  | Responsibility                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `client-architecture` | React Router v8 Data Mode (`loader`/`action`), no 3rd-party state/data lib, all network via `@shared/firebase-cloude-api`, auth via `lib/auth.tsx` context (AD-4). |
-| `client-eleks-ui` | ELEKS UI import/usage conventions; delegates to the re-homed `eleks-ui` skill. |
-| `client-testing` | RTL conventions, fixture/mocking patterns, unit/integration placement, vitest. |
+| `client-eleks-ui`     | ELEKS UI import/usage conventions; delegates to the re-homed `eleks-ui` skill.                                                                                     |
+| `client-testing`      | RTL conventions, fixture/mocking patterns, unit/integration placement, vitest.                                                                                     |
 
 **Scaffolders**
 
-| Command | Purpose | Template |
-| --- | --- | --- |
-| `/scaffold-route` | New `routes/<page>/` with component + loader/action wired to `@shared/firebase-cloude-api`. | `scaffold-route.template.tsx` |
-| `/scaffold-component` | New presentational/feature component following ELEKS UI conventions. | `scaffold-component.template.tsx` |
+| Command               | Purpose                                                                                     | Template                          |
+| --------------------- | ------------------------------------------------------------------------------------------- | --------------------------------- |
+| `/scaffold-route`     | New `routes/<page>/` with component + loader/action wired to `@shared/firebase-cloude-api`. | `scaffold-route.template.tsx`     |
+| `/scaffold-component` | New presentational/feature component following ELEKS UI conventions.                        | `scaffold-component.template.tsx` |
 
 **Reviewer:** `review/client-reviewer` — enforces AD-4, gateway-only fetch, no state lib,
 ELEKS UI usage, and `client-testing`.
@@ -329,11 +326,11 @@ ELEKS UI usage, and `client-testing`.
 **Service taxonomy** (owned by `functions-architecture`; flat in
 `functions/src/services/`, distinguished by suffix):
 
-| Suffix | Archetype | Rule |
-| --- | --- | --- |
-| `*-store.ts` | Firestore collection adapter — one collection's Zod schema + CRUD; **the only Firestore-touching code** (AD-1/AD-2). Existing: `repositories-store.ts`, `user-favorites-store.ts` (AD-14). | Zod at the store boundary; nothing else imports a Firestore SDK. |
-| `*-client.ts` | 3rd-party integration client — wraps one external API (e.g. `github-client.ts` for discovery per AD-6, `anthropic-client.ts` for validation per AD-12), with `defineSecret` wiring (AD-10). No Firestore. | Owns the external call + secret; returns typed data. |
-| `*-service.ts` | Domain / orchestration service — composes clients + stores for business logic (e.g. the validation service, AD-12), invoked by thin triggers (endpoint and/or scheduler). | No HTTP parsing, no direct Firestore SDK (goes through a store). |
+| Suffix         | Archetype                                                                                                                                                                                                 | Rule                                                             |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `*-store.ts`   | Firestore collection adapter — one collection's Zod schema + CRUD; **the only Firestore-touching code** (AD-1/AD-2). Existing: `repositories-store.ts`, `user-favorites-store.ts` (AD-14).                | Zod at the store boundary; nothing else imports a Firestore SDK. |
+| `*-client.ts`  | 3rd-party integration client — wraps one external API (e.g. `github-client.ts` for discovery per AD-6, `anthropic-client.ts` for validation per AD-12), with `defineSecret` wiring (AD-10). No Firestore. | Owns the external call + secret; returns typed data.             |
+| `*-service.ts` | Domain / orchestration service — composes clients + stores for business logic (e.g. the validation service, AD-12), invoked by thin triggers (endpoint and/or scheduler).                                 | No HTTP parsing, no direct Firestore SDK (goes through a store). |
 
 > **Docs-sync note.** The `-client` / `-service` suffixes are a design proposal this
 > document introduces; the architecture spine currently names only `*-store.ts` (AD-2).
@@ -344,19 +341,19 @@ ELEKS UI usage, and `client-testing`.
 
 **Module rules**
 
-| Rule | Responsibility |
-| --- | --- |
+| Rule                     | Responsibility                                                                                                                                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `functions-architecture` | Adapter/store/client/service split + suffix taxonomy above; thin `onRequest` adapters (AD-2), auth-token verification (AD-9), public `shareableLink` exception (AD-14), Secret Manager (AD-10), deny-all rules (AD-3), calculated-field helpers synchronous (AD-11/AD-13), validation queue in-memory processing (AD-15). |
-| `functions-testing` | Unit tests co-located, integration tests under `integration-specs/`, mocking conventions, vitest. |
+| `functions-testing`      | Unit tests co-located, integration tests under `integration-specs/`, mocking conventions, vitest.                                                                                                                                                                                                                         |
 
 **Scaffolders**
 
-| Command | Purpose | Template |
-| --- | --- | --- |
-| `/scaffold-function` | Thin HTTP adapter (`functions/<verb>.ts`) wired to exactly one existing service. | `scaffold-function.template.ts` |
-| `/scaffold-service-store` | New Firestore collection: Zod schema + CRUD + deny-all `firestore.rules` reminder. | `scaffold-service-store.template.ts` |
-| `/scaffold-integration-client` | Typed 3rd-party client + `defineSecret`, no Firestore. | `scaffold-integration-client.template.ts` |
-| `/scaffold-domain-service` | Orchestration service composing clients/stores, callable by thin triggers. | `scaffold-domain-service.template.ts` |
+| Command                        | Purpose                                                                            | Template                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------- | ----------------------------------------- |
+| `/scaffold-function`           | Thin HTTP adapter (`functions/<verb>.ts`) wired to exactly one existing service.   | `scaffold-function.template.ts`           |
+| `/scaffold-service-store`      | New Firestore collection: Zod schema + CRUD + deny-all `firestore.rules` reminder. | `scaffold-service-store.template.ts`      |
+| `/scaffold-integration-client` | Typed 3rd-party client + `defineSecret`, no Firestore.                             | `scaffold-integration-client.template.ts` |
+| `/scaffold-domain-service`     | Orchestration service composing clients/stores, callable by thin triggers.         | `scaffold-domain-service.template.ts`     |
 
 > **Database migrations: N/A.** Firestore is schemaless — there is no DDL/migration
 > step to scaffold. Schema evolution happens by editing the Zod schema inside the
@@ -370,15 +367,15 @@ auth-token verification, and violations of AD-1/2/3/9/10/11/12/13/14/15.
 
 **Module rules**
 
-| Rule | Responsibility |
-| --- | --- |
+| Rule               | Responsibility                                                                                                                                                                                             |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cli-architecture` | Pipeline-of-single-responsibility-modules per command (AD-8); calls `functions/` for Firestore-touching work and for skill discovery + content (AD-6/AD-7); local `interfaces.ts` + co-located `.spec.ts`. |
-| `cli-testing` | Mocking file system + HTTP, `skills-lock.json` handling, vitest. |
+| `cli-testing`      | Mocking file system + HTTP, `skills-lock.json` handling, vitest.                                                                                                                                           |
 
 **Scaffolders**
 
-| Command | Purpose | Template |
-| --- | --- | --- |
+| Command             | Purpose                                                                                   | Template                           |
+| ------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------- |
 | `/scaffold-command` | New `commands/<verb>/` pipeline (index orchestrator + step modules + interfaces + specs). | `scaffold-cli-command.template.ts` |
 
 **Note on `/scaffold-cli-integration-client`:** AD-7 changed — the CLI now receives unified metadata + file content from the backend (AD-6/AD-7), not direct GitHub calls. A CLI GitHub client scaffolder may still be useful for rare non-content needs (e.g., checking repo existence before calling backend), but the primary discovery + content flow is backend-driven. Consider repurposing or removing this scaffolder.
@@ -391,30 +388,30 @@ pipeline decomposition, and `cli-testing`.
 These non-BMAD skills exist today under `.claude/skills/` and are folded into the
 ecosystem, proposed to move to `.cursor/skills/`:
 
-| Skill | Role in ecosystem |
-| --- | --- |
-| `git-commit` | Conventional Commit drafting + commitlint validation. |
-| `eleks-ui` | ELEKS UI conventions; referenced by the `client-eleks-ui` rule and any UI scaffolding. |
-| `check-duplicates` | Copy-paste + semantic duplication detection; invokable during review/refactor. |
+| Skill              | Role in ecosystem                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `git-commit`       | Conventional Commit drafting + commitlint validation.                                  |
+| `eleks-ui`         | ELEKS UI conventions; referenced by the `client-eleks-ui` rule and any UI scaffolding. |
+| `check-duplicates` | Copy-paste + semantic duplication detection; invokable during review/refactor.         |
 
 ## 7. Templates Catalog
 
 Inert boilerplate under `.cursor/templates/`, instantiated by scaffolders. Doc
 templates (story / task / pr) already live under [`wiki/templates/`](templates/).
 
-| Template | Consumed by |
-| --- | --- |
-| `scaffold-function.template.ts` | `/scaffold-function` |
-| `scaffold-service-store.template.ts` | `/scaffold-service-store` |
-| `scaffold-integration-client.template.ts` | `/scaffold-integration-client` |
-| `scaffold-domain-service.template.ts` | `/scaffold-domain-service` |
-| `scaffold-route.template.tsx` | `/scaffold-route` |
-| `scaffold-component.template.tsx` | `/scaffold-component` |
-| `scaffold-cli-command.template.ts` | `/scaffold-command` |
-| `scaffold-cli-integration-client.template.ts` | `/scaffold-cli-integration-client` |
-| `e2e-test.template.ts` | `author-e2e-tests` skill |
-| `unit-test.template.ts` | scaffolders + `functions-testing`/`client-testing`/`cli-testing` |
-| `pr-description.template.md` | `/code-review`, commit/PR flow |
+| Template                                      | Consumed by                                                      |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| `scaffold-function.template.ts`               | `/scaffold-function`                                             |
+| `scaffold-service-store.template.ts`          | `/scaffold-service-store`                                        |
+| `scaffold-integration-client.template.ts`     | `/scaffold-integration-client`                                   |
+| `scaffold-domain-service.template.ts`         | `/scaffold-domain-service`                                       |
+| `scaffold-route.template.tsx`                 | `/scaffold-route`                                                |
+| `scaffold-component.template.tsx`             | `/scaffold-component`                                            |
+| `scaffold-cli-command.template.ts`            | `/scaffold-command`                                              |
+| `scaffold-cli-integration-client.template.ts` | `/scaffold-cli-integration-client`                               |
+| `e2e-test.template.ts`                        | `author-e2e-tests` skill                                         |
+| `unit-test.template.ts`                       | scaffolders + `functions-testing`/`client-testing`/`cli-testing` |
+| `pr-description.template.md`                  | `/code-review`, commit/PR flow                                   |
 
 ## 8. Optional Cursor Hooks
 
@@ -423,20 +420,20 @@ templates (story / task / pr) already live under [`wiki/templates/`](templates/)
 > an explicit decision to adopt them. If adopted, they live in `.cursor/hooks.json`
 > (plus the existing Husky git hooks).
 
-| Hook | Type | Rationale (why it would help) |
-| --- | --- | --- |
-| Extend `pre-commit` (Husky) | git hook | lint-staged currently covers `client/**` only; extend to `functions/**` + `cli/**` so all packages are linted pre-commit. |
-| Extend `pre-push` (Husky) | git hook | Run typecheck across all three packages (today's `npm test` is a stub) to catch breakage before it reaches CI. |
-| `beforeShellExecution` | Cursor hook | Matcher on `git push --force`, `firebase deploy`, `rm -rf`; action `ask` (not silent deny), `failClosed: true` — a safety net against irreversible commands. |
-| `beforeReadFile` | Cursor hook | Block `.env*` / credential files from entering agent context — belt-and-suspenders alongside AD-10 (secrets live in Secret Manager, never a file). |
-| `afterFileEdit` | Cursor hook | Run the relevant lint/format check immediately after an edit lands — tighter feedback loop than commit-time only. |
+| Hook                        | Type        | Rationale (why it would help)                                                                                                                                |
+| --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Extend `pre-commit` (Husky) | git hook    | lint-staged currently covers `client/**` only; extend to `functions/**` + `cli/**` so all packages are linted pre-commit.                                    |
+| Extend `pre-push` (Husky)   | git hook    | Run typecheck across all three packages (today's `npm test` is a stub) to catch breakage before it reaches CI.                                               |
+| `beforeShellExecution`      | Cursor hook | Matcher on `git push --force`, `firebase deploy`, `rm -rf`; action `ask` (not silent deny), `failClosed: true` — a safety net against irreversible commands. |
+| `beforeReadFile`            | Cursor hook | Block `.env*` / credential files from entering agent context — belt-and-suspenders alongside AD-10 (secrets live in Secret Manager, never a file).           |
+| `afterFileEdit`             | Cursor hook | Run the relevant lint/format check immediately after an edit lands — tighter feedback loop than commit-time only.                                            |
 
 ## 9. Component Interaction & Composition
 
 The ecosystem is deliberately a set of small pieces that chain explicitly:
 
 - **Constrain → Produce → Review → Record.** Rules constrain every step; scaffolders
-  + skills produce; agents review; commit/status commands record.
+  - skills produce; agents review; commit/status commands record.
 - **Rules are ambient.** Global rules always apply; module rules auto-attach by
   glob. No scaffolder or agent re-states a rule — they reference it, so the rule is
   the single source of truth.
@@ -485,6 +482,7 @@ Command, Custom Agent, Cursor Hook, Template.
 ### 11.1 Global Rules
 
 #### `global/architecture-invariants.mdc`
+
 - **Type:** Rule (always-applied)
 - **Purpose:** Surface AD-1..AD-15 to every task without duplicating them.
 - **Responsibilities:** Include [`architecture-invariants.md`](architecture-invariants.md) verbatim.
@@ -494,7 +492,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Always.
 - **Notes:** Include, never paraphrase — prevents a second drifting copy.
 
-#### `code-comments.mdc` *(exists)*
+#### `code-comments.mdc` _(exists)_
+
 - **Type:** Rule (always-applied)
 - **Purpose:** Keep comments exception-only, English, `NOTE:`-prefixed.
 - **Responsibilities:** Enforce comment policy across all packages.
@@ -504,7 +503,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Always.
 - **Notes:** Already implemented; will be moved to `global/` subfolder.
 
-#### `error-handling-logging.mdc` *(exists)*
+#### `error-handling-logging.mdc` _(exists)_
+
 - **Type:** Rule (always-applied)
 - **Purpose:** Consistent, secret-free error/log practice.
 - **Responsibilities:** Throw `Error` with context + `cause`; correct log levels; no secrets.
@@ -515,6 +515,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Already implemented; will be moved to `global/` subfolder.
 
 #### `global/naming-conventions.mdc`
+
 - **Type:** Rule (always-applied)
 - **Purpose:** One naming standard repo-wide.
 - **Responsibilities:** File kebab-case; Cloud Functions `api`+PascalCase; misc cross-cutting naming.
@@ -523,16 +524,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Dependencies:** `architecture.md` conventions table.
 - **Invocation conditions:** Always.
 
-#### `global/git-and-commit-conventions.mdc`
-- **Type:** Rule (always-applied)
-- **Purpose:** Consistent branches + commit messages.
-- **Responsibilities:** Git Flow branch model; Conventional Commits per `commitlint.config.js`.
-- **Inputs:** Branch/commit actions.
-- **Outputs:** Constraint used by `git-commit` skill.
-- **Dependencies:** `commitlint.config.js`.
-- **Invocation conditions:** Always.
-
 #### `global/testing-standards.mdc`
+
 - **Type:** Rule (always-applied)
 - **Purpose:** One testing philosophy.
 - **Responsibilities:** Story = E2E, task = unit/integration; AAA; per-package placement; vitest.
@@ -541,7 +534,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Dependencies:** Module testing rules.
 - **Invocation conditions:** Always.
 
-#### `global/documentation-standards.mdc`
+#### `global/documentation-standards.mdc` (deferred)
+
 - **Type:** Rule (always-applied)
 - **Purpose:** Keep `wiki/` in sync with reality.
 - **Responsibilities:** When scope/decisions change, update the matching wiki file (stories, tasks, invariants).
@@ -550,18 +544,10 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Dependencies:** `wiki/`.
 - **Invocation conditions:** Always.
 
-#### `global/repository-conventions.mdc`
-- **Type:** Rule (always-applied)
-- **Purpose:** Repo-level boundaries.
-- **Responsibilities:** Monorepo layout, package boundaries, `functions/`-is-sole-gateway at repo level.
-- **Inputs:** Cross-package edits.
-- **Outputs:** Boundary constraint.
-- **Dependencies:** `architecture.md`.
-- **Invocation conditions:** Always.
-
 ### 11.2 Module Rules
 
 #### `client/client-architecture.mdc`
+
 - **Type:** Rule (glob: `client/**`)
 - **Purpose:** Enforce the frontend architecture (AD-4).
 - **Responsibilities:** Router v8 Data Mode, no state/data lib, `@shared/firebase-cloude-api` gateway, `lib/auth.tsx` context. Favorites UI via `@shared/firebase-cloude-api` (AD-14).
@@ -571,6 +557,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Auto-attached on `client/**`.
 
 #### `client/client-eleks-ui.mdc`
+
 - **Type:** Rule (glob: `client/**`)
 - **Purpose:** ELEKS UI usage discipline.
 - **Responsibilities:** Import/usage conventions; delegate detail to the `eleks-ui` skill.
@@ -580,6 +567,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Auto-attached on `client/**`.
 
 #### `client/client-testing.mdc`
+
 - **Type:** Rule (glob: `client/**`)
 - **Purpose:** Frontend test conventions.
 - **Responsibilities:** RTL, fixtures/mocks, unit/integration placement, vitest.
@@ -589,6 +577,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Auto-attached on `client/**`.
 
 #### `functions/functions-architecture.mdc`
+
 - **Type:** Rule (glob: `functions/**`)
 - **Purpose:** Enforce backend layering + service taxonomy.
 - **Responsibilities:** Adapter/store/client/service split; `*-store.ts`/`*-client.ts`/`*-service.ts` suffixes; AD-2/3/9/10/11/12/13/14/15.
@@ -599,6 +588,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Introduces the `-client`/`-service` suffixes as design proposals pending docs-sync into the spine.
 
 #### `functions/functions-testing.mdc`
+
 - **Type:** Rule (glob: `functions/**`)
 - **Purpose:** Backend test conventions.
 - **Responsibilities:** Co-located unit specs, `integration-specs/` layout, mocking, vitest.
@@ -608,6 +598,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Auto-attached on `functions/**`.
 
 #### `cli/cli-architecture.mdc`
+
 - **Type:** Rule (glob: `cli/**`)
 - **Purpose:** Enforce CLI pipeline model + boundaries.
 - **Responsibilities:** Pipeline-of-modules (AD-8), gateway calls for Firestore work, unified content response from backend (AD-7).
@@ -617,6 +608,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Auto-attached on `cli/**`.
 
 #### `cli/cli-testing.mdc`
+
 - **Type:** Rule (glob: `cli/**`)
 - **Purpose:** CLI test conventions.
 - **Responsibilities:** FS/HTTP mocking, `skills-lock.json` handling, vitest.
@@ -628,6 +620,7 @@ Command, Custom Agent, Cursor Hook, Template.
 ### 11.3 Skills
 
 #### `author-e2e-tests`
+
 - **Type:** Skill
 - **Purpose:** Turn a story's E2E scenarios into executable E2E tests.
 - **Responsibilities:** Analyze scenarios, decide coverage, generate AAA tests, define verification points, document execution.
@@ -637,17 +630,19 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** After implementing behavior with E2E-worthy scenarios; auto-triggered by relevance or invoked explicitly.
 - **Notes:** Chosen as a Skill over a Custom Agent (see [§5.2](#52-e2e-test-authoring--recommended-as-a-skill)).
 
-#### `git-commit` *(re-homed)*
+#### `git-commit` _(re-homed)_
+
 - **Type:** Skill
 - **Purpose:** Draft + validate Conventional Commits.
 - **Responsibilities:** Analyze diff, draft message, run commitlint, commit only after confirmation.
 - **Inputs:** Working-tree diff.
 - **Outputs:** A validated commit (on confirmation).
-- **Dependencies:** `global-git-and-commit-conventions`, `commitlint.config.js`.
+- **Dependencies:** `commitlint.config.js`.
 - **Invocation conditions:** When the user wants to commit.
 - **Notes:** Never `--amend`/force-push; never commits secrets.
 
-#### `eleks-ui` *(re-homed)*
+#### `eleks-ui` _(re-homed)_
+
 - **Type:** Skill
 - **Purpose:** Apply ELEKS UI conventions to UI work.
 - **Responsibilities:** Component discovery, import rules, styling tokens.
@@ -656,7 +651,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Dependencies:** `client-eleks-ui` rule.
 - **Invocation conditions:** Any React UI work.
 
-#### `check-duplicates` *(re-homed)*
+#### `check-duplicates` _(re-homed)_
+
 - **Type:** Skill
 - **Purpose:** Detect copy-paste + semantic duplication.
 - **Responsibilities:** Run detection, produce prioritized report, refactor only on approval.
@@ -668,6 +664,7 @@ Command, Custom Agent, Cursor Hook, Template.
 ### 11.4 Commands
 
 #### `/scaffold-function`
+
 - **Type:** Command
 - **Purpose:** Scaffold a thin HTTP adapter wired to one existing service.
 - **Responsibilities:** Instantiate the adapter template; wire to a chosen service.
@@ -677,6 +674,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New backend endpoint.
 
 #### `/scaffold-service-store`
+
 - **Type:** Command
 - **Purpose:** Scaffold a Firestore collection store.
 - **Responsibilities:** Zod schema + CRUD + deny-all rule reminder.
@@ -686,6 +684,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New Firestore collection.
 
 #### `/scaffold-integration-client`
+
 - **Type:** Command
 - **Purpose:** Scaffold a typed 3rd-party client.
 - **Responsibilities:** Client wrapper + `defineSecret` wiring; no Firestore.
@@ -695,6 +694,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New external API integration in `functions/`.
 
 #### `/scaffold-domain-service`
+
 - **Type:** Command
 - **Purpose:** Scaffold an orchestration service.
 - **Responsibilities:** Compose clients/stores; expose logic callable by thin triggers.
@@ -704,6 +704,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New business-logic flow spanning clients + stores.
 
 #### `/scaffold-route`
+
 - **Type:** Command
 - **Purpose:** Scaffold a new frontend route.
 - **Responsibilities:** `routes/<page>/` component + loader/action via `@shared/firebase-cloude-api`.
@@ -713,6 +714,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New page.
 
 #### `/scaffold-component`
+
 - **Type:** Command
 - **Purpose:** Scaffold a UI component.
 - **Responsibilities:** ELEKS UI-conformant component skeleton.
@@ -722,6 +724,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New component.
 
 #### `/scaffold-command`
+
 - **Type:** Command
 - **Purpose:** Scaffold a CLI command pipeline.
 - **Responsibilities:** `commands/<verb>/` index + step modules + interfaces + specs.
@@ -731,6 +734,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** New CLI command.
 
 #### `/scaffold-cli-integration-client`
+
 - **Type:** Command
 - **Purpose:** Scaffold a direct-to-GitHub content client for the CLI.
 - **Responsibilities:** Typed client scoped to known paths (AD-7).
@@ -740,6 +744,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** CLI needs direct external content fetch.
 
 #### `/code-review`
+
 - **Type:** Command
 - **Purpose:** Entry point to review workflow.
 - **Responsibilities:** Gather diff/PR context; use Task tool to delegate to `review/orchestrator`.
@@ -750,6 +755,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Explicitly delegates via Task tool to ensure orchestrator runs in isolated context.
 
 #### `/deploy-check`
+
 - **Type:** Command
 - **Purpose:** Pre-flight before deploy.
 - **Responsibilities:** Typecheck/build/test affected packages; stop short of `firebase deploy`.
@@ -760,6 +766,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Never runs `firebase deploy` itself.
 
 #### `/update-task-status`
+
 - **Type:** Command
 - **Purpose:** Keep task + story status in sync.
 - **Responsibilities:** Update a task's frontmatter + its story's Tasks-table row.
@@ -769,6 +776,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** On task state change; explicit only.
 
 #### `/refactor`
+
 - **Type:** Command
 - **Purpose:** Entry point to refactoring workflow.
 - **Responsibilities:** Gather scope + priorities; use Task tool to delegate to `refactor/orchestrator`.
@@ -778,7 +786,8 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** When user wants to analyze and refactor code based on requirements.
 - **Notes:** Explicitly delegates via Task tool to ensure orchestrator runs in isolated context.
 
-#### `/implement-task` *(optional)*
+#### `/implement-task` _(optional)_
+
 - **Type:** Command
 - **Purpose:** Focused single-task implementation aid.
 - **Responsibilities:** Read one task + its story + invariants; implement that task; write its specified tests. Human-gated.
@@ -791,6 +800,7 @@ Command, Custom Agent, Cursor Hook, Template.
 ### 11.5 Custom Agents
 
 #### `review/orchestrator`
+
 - **Type:** Custom Agent
 - **Purpose:** Coordinate post-implementation review.
 - **Responsibilities:** Detect affected modules, dispatch relevant reviewers in parallel, aggregate + triage findings.
@@ -801,6 +811,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Never writes feature code; never auto-applies fixes.
 
 #### `review/requirements-reviewer`
+
 - **Type:** Custom Agent
 - **Purpose:** Verify changes satisfy requirements.
 - **Responsibilities:** Check against FR/NFR ids + story acceptance/E2E scenarios.
@@ -810,6 +821,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by review/orchestrator.
 
 #### `review/architecture-reviewer`
+
 - **Type:** Custom Agent
 - **Purpose:** Verify architectural conformance.
 - **Responsibilities:** Check AD-1..AD-15 + module architecture rules (layering, gateway, dependency direction).
@@ -819,6 +831,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by review/orchestrator.
 
 #### `review/security-reviewer`
+
 - **Type:** Custom Agent
 - **Purpose:** Verify security posture.
 - **Responsibilities:** Auth-token verification (AD-9), public `shareableLink` exception (AD-14), Secret Manager (AD-10), deny-all rules (AD-3), input validation, no secrets in logs.
@@ -828,6 +841,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by review/orchestrator.
 
 #### `review/client-reviewer` / `review/functions-reviewer` / `review/cli-reviewer`
+
 - **Type:** Custom Agent (one per module)
 - **Purpose:** Module-depth conformance review.
 - **Responsibilities:** Enforce the module's architecture + testing rules (e.g. `review/functions-reviewer` flags Firestore access outside `*-store.ts`, secret reads outside `*-client.ts`).
@@ -837,6 +851,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by review/orchestrator when the module is affected.
 
 #### `refactor/orchestrator`
+
 - **Type:** Custom Agent
 - **Purpose:** Coordinate code analysis and refactoring.
 - **Responsibilities:** Detect affected modules, dispatch relevant analyzers in parallel, aggregate findings, generate refactoring plan, implement with approval gates.
@@ -847,6 +862,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Notes:** Never auto-applies refactorings; human gates after analysis and each implementation phase.
 
 #### `refactor/requirements-analyzer`
+
 - **Type:** Custom Agent
 - **Purpose:** Analyze code conformance to requirements.
 - **Responsibilities:** Check against FR/NFR ids; suggest refactorings to meet unmet requirements.
@@ -856,6 +872,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by refactor/orchestrator.
 
 #### `refactor/architecture-analyzer`
+
 - **Type:** Custom Agent
 - **Purpose:** Analyze architectural and pattern conformance.
 - **Responsibilities:** Check AD-1..AD-15; leverage existing rules (`code-comments`, `error-handling-logging`, `naming-conventions`) for pattern enforcement.
@@ -865,6 +882,7 @@ Command, Custom Agent, Cursor Hook, Template.
 - **Invocation conditions:** Dispatched by refactor/orchestrator.
 
 #### `refactor/client-analyzer` / `refactor/functions-analyzer` / `refactor/cli-analyzer`
+
 - **Type:** Custom Agent (one per module)
 - **Purpose:** Module-specific refactoring analysis.
 - **Responsibilities:** Analyze using the module's architecture + testing rules; suggest module-specific refactorings.
@@ -880,29 +898,29 @@ listed consumer; **Inputs** = scaffolder parameters; **Outputs** = an instantiat
 file; **Dependencies** = the matching module rule; **Invocation conditions** = when
 its scaffolder runs.
 
-| Template | Consumer |
-| --- | --- |
-| `scaffold-function.template.ts` | `/scaffold-function` |
-| `scaffold-service-store.template.ts` | `/scaffold-service-store` |
-| `scaffold-integration-client.template.ts` | `/scaffold-integration-client` |
-| `scaffold-domain-service.template.ts` | `/scaffold-domain-service` |
-| `scaffold-route.template.tsx` | `/scaffold-route` |
-| `scaffold-component.template.tsx` | `/scaffold-component` |
-| `scaffold-cli-command.template.ts` | `/scaffold-command` |
+| Template                                      | Consumer                           |
+| --------------------------------------------- | ---------------------------------- |
+| `scaffold-function.template.ts`               | `/scaffold-function`               |
+| `scaffold-service-store.template.ts`          | `/scaffold-service-store`          |
+| `scaffold-integration-client.template.ts`     | `/scaffold-integration-client`     |
+| `scaffold-domain-service.template.ts`         | `/scaffold-domain-service`         |
+| `scaffold-route.template.tsx`                 | `/scaffold-route`                  |
+| `scaffold-component.template.tsx`             | `/scaffold-component`              |
+| `scaffold-cli-command.template.ts`            | `/scaffold-command`                |
 | `scaffold-cli-integration-client.template.ts` | `/scaffold-cli-integration-client` |
-| `e2e-test.template.ts` | `author-e2e-tests` |
-| `unit-test.template.ts` | scaffolders + testing rules |
-| `pr-description.template.md` | `/code-review`, commit/PR flow |
+| `e2e-test.template.ts`                        | `author-e2e-tests`                 |
+| `unit-test.template.ts`                       | scaffolders + testing rules        |
+| `pr-description.template.md`                  | `/code-review`, commit/PR flow     |
 
-### 11.7 Cursor Hooks *(optional — see [§8](#8-optional-cursor-hooks))*
+### 11.7 Cursor Hooks _(optional — see [§8](#8-optional-cursor-hooks))_
 
-| Hook | Type | Invocation condition |
-| --- | --- | --- |
-| Extended `pre-commit` | git hook | On commit (lint-staged across all packages) |
-| Extended `pre-push` | git hook | On push (typecheck all packages) |
+| Hook                   | Type        | Invocation condition                                        |
+| ---------------------- | ----------- | ----------------------------------------------------------- |
+| Extended `pre-commit`  | git hook    | On commit (lint-staged across all packages)                 |
+| Extended `pre-push`    | git hook    | On push (typecheck all packages)                            |
 | `beforeShellExecution` | Cursor Hook | Before a matched shell command (force-push/deploy/`rm -rf`) |
-| `beforeReadFile` | Cursor Hook | Before reading `.env*`/credential files |
-| `afterFileEdit` | Cursor Hook | After a file edit lands |
+| `beforeReadFile`       | Cursor Hook | Before reading `.env*`/credential files                     |
+| `afterFileEdit`        | Cursor Hook | After a file edit lands                                     |
 
 ## 12. Out of Scope
 
