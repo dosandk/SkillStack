@@ -201,6 +201,8 @@ to discuss: частина якось флова чи процесу чи...
 
 Ось тут, можливо, треба робити до тестів
 
+- Postphoned right now
+
 --
 
 ## 21 Refactoring Best Practices
@@ -220,6 +222,9 @@ to discuss: частина якось флова чи процесу чи...
 - AI integration: skill, agent
 - Process: development
 - Verification process: code review
+
+
+- Postphoned right now
 
 --
 
@@ -241,3 +246,6 @@ to discuss: частина якось флова чи процесу чи...
 - AI integration: skill
 - Process: documentation
 - Verification process: code review
+
+
+- Postphoned right now
