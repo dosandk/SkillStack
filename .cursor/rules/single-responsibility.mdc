@@ -1,0 +1,60 @@
+---
+description: Single Responsibility — each module/function has one reason to change; keep transport, domain, and data access separate
+globs: '**/*.{ts,tsx}'
+alwaysApply: false
+---
+
+# Single Responsibility
+
+Every module, function, and class should have **one reason to change**. Keep
+unrelated concerns — HTTP transport, business rules, data access, filesystem,
+logging — in separate units that delegate to each other. If you need "and" to
+describe what a unit does, split it.
+
+## Separate transport, domain, and data access
+
+The `functions/` backend is the reference split — mirror it in new code:
+
+- **Handler** (`functions/src/functions/*/index.ts`) — maps HTTP ⇄ domain only:
+  parse the request, call the domain function, translate result/errors to status
+  codes. No business rules, no Firestore.
+- **Domain** (`functions/src/functions/*/function.ts`) — business rules only;
+  knows nothing about HTTP or Firestore APIs.
+- **Store** (`functions/src/services/repositories-store.ts`) — the only place
+  that touches Firestore; each method is one query or mutation.
+
+```ts
+// ❌ BAD — one function fetches, writes files, AND cleans up on error
+async function add(repoUrl, skills) {
+  const repoFiles = await githubService.getRepoFiles(...); // transport
+  writeRepoFiles(repoFiles, '.agents');                    // filesystem
+  await backendService.deleteRepoInfo(repoUrl);            // cleanup leaks in
+}
+
+// ✅ GOOD — thin handler delegates the rule to the domain function
+// functions/src/functions/store-repo-info/index.ts
+export const apiStoreRepoInfo = onRequest({ invoker: 'public' }, async (request, response) => {
+  try {
+    const id = await storeRepoInfo(request.body);
+    response.status(201).send({ id });
+  } catch (error) {
+    logError('Failed to write repository', { error });
+    response.status(400).send({ error: 'Invalid repository payload' });
+  }
+});
+
+// ✅ GOOD — domain owns one rule, delegates persistence to the store
+// functions/src/functions/store-repo-info/function.ts
+export async function storeRepoInfo(input: unknown): Promise<string> {
+  const data = repositorySchema.parse(input);
+  const repo = await repositoriesStore.findByPath(data.repoSlug);
+  return repo ? repo.id : repositoriesStore.add(data);
+}
+```
+
+## Checklist
+
+- A unit has one reason to change; its description needs no "and".
+- Transport, domain rules, and data access live in separate units.
+- Handlers hold no business logic; stores hold no business rules.
+- No stray debugging or unrelated cleanup inside a unit.

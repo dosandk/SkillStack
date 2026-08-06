@@ -1,6 +1,7 @@
+
 ---
 description: Naming for identifiers — no single letters, domain names, case and React conventions
-globs: "**/*.{ts,tsx,js,jsx}"
+globs: '**/*.{ts,tsx,js,jsx}'
 alwaysApply: false
 ---
 
@@ -61,14 +62,14 @@ domain prefix or qualifier (`repoNameMatch`, `pullRequestTitle`, `skillCount`,
 
 ## Rule 3 — Case conventions
 
-| Entity | Style | Example |
-|--------|-------|---------|
-| variables, parameters, functions | camelCase | `searchQuery`, `parseRepo` |
-| types, interfaces, classes, components | PascalCase | `PullOptions`, `ContentList` |
-| module-level constants | SCREAMING_SNAKE | `GITHUB_API`, `FILE_DEPTH` |
-| React prop types | PascalCase + `Props` | `ContentListProps` |
-| hooks | `use` + PascalCase | `useContent`, `useAuth` |
-| booleans | `is`/`has`/`can`/`should` + PascalCase | `isLoading`, `hasError` |
+| Entity                                 | Style                                  | Example                      |
+| -------------------------------------- | -------------------------------------- | ---------------------------- |
+| variables, parameters, functions       | camelCase                              | `searchQuery`, `parseRepo`   |
+| types, interfaces, classes, components | PascalCase                             | `PullOptions`, `ContentList` |
+| module-level constants                 | SCREAMING_SNAKE                        | `GITHUB_API`, `FILE_DEPTH`   |
+| React prop types                       | PascalCase + `Props`                   | `ContentListProps`           |
+| hooks                                  | `use` + PascalCase                     | `useContent`, `useAuth`      |
+| booleans                               | `is`/`has`/`can`/`should` + PascalCase | `isLoading`, `hasError`      |
 
 ## Rule 4 — React conventions
 
@@ -123,14 +124,14 @@ Do **not** treat short inline callbacks as an exception — use full names even 
 
 ## SkillStack domain examples
 
-| Instead of | Prefer |
-|------------|--------|
-| `data` | `skillMetadata`, `catalogEntry` |
-| `result` | `pullResult`, `validationOutcome` |
-| `handler` | `skillValidationHandler` |
-| `item` (in content list) | `catalogItem`, `contentEntry` |
-| `url` (in parseRepo) | `repoUrl` |
-| `q` (search filter) | `query`, `searchQuery` |
+| Instead of               | Prefer                            |
+| ------------------------ | --------------------------------- |
+| `data`                   | `skillMetadata`, `catalogEntry`   |
+| `result`                 | `pullResult`, `validationOutcome` |
+| `handler`                | `skillValidationHandler`          |
+| `item` (in content list) | `catalogItem`, `contentEntry`     |
+| `url` (in parseRepo)     | `repoUrl`                         |
+| `q` (search filter)      | `query`, `searchQuery`            |
 
 ## Examples
 

@@ -8,7 +8,7 @@ description: >-
   asks to check for duplicate code, find copy-paste, or deduplicate a module.
 ---
 
-# Check Duplicates (SkillStack)
+# Check Duplicates
 
 Twoz-pass duplication check: **jscpd** finds token-level copy-paste, then a
 **semantic pass** finds the same logic written differently (renamed variables,
@@ -42,10 +42,7 @@ State the resolved scope in one line before running anything.
 
 ## Phase 2 — Textual duplication (jscpd)
 
-Run jscpd via `npx` (no install needed). Always exclude build output and specs noise.
-
-The report is written to `.jscpd-report/` at the repo root (an in-project folder;
-add it to `.gitignore` if it is not already ignored).
+Run jscpd via `npx`:
 
 ```bash
 npx --yes jscpd \
@@ -57,15 +54,6 @@ npx --yes jscpd \
   <scope paths from Phase 1>
 ```
 
-Then read the JSON report at `.jscpd-report/jscpd-report.json`. For each clone extract:
-file A + line range, file B + line range, and the duplicated fragment.
-
-Notes:
-
-- Tune `--min-tokens` down to `30` for a stricter pass if the first run finds nothing
-  but the user expects duplication; note the change in the report.
-- If `npx jscpd` is unavailable (offline), skip to Phase 3 and say jscpd was skipped.
-
 ---
 
 ## Phase 3 — Semantic duplication (agent review)
@@ -76,10 +64,7 @@ jscpd misses logic that was rewritten, not copied. Read the in-scope files and l
 - **Duplicated validation** — repeated Zod schemas or guard blocks describing the same shape.
 - **Copy-adapted utilities** — a helper reimplemented instead of imported (parsers, formatters, mappers).
 - **Repeated Firestore access patterns** — the same query/update shape across handlers.
-- **Cross-package drift** — the same type or constant defined separately in `client/`, `functions/`, `cli/`.
-
-For each candidate record: the locations, why they are equivalent, and a suggested
-shared home (existing service/util file, or a new one) with a domain-named export.
+- **Cross-package drift** — the same type or constant defined separately in different modules.
 
 ---
 
@@ -108,33 +93,3 @@ Present a single report. Do not edit anything yet.
 
 Rank by payoff: prefer extractions that remove real logic over cosmetic ones.
 Then ask which items (if any) to refactor. **Stop here until the user chooses.**
-
----
-
-## Phase 5 — Refactor (only after approval)
-
-For each approved item:
-
-1. Create or locate the shared home (service/util module in the owning package).
-2. Extract the logic into one domain-named function/type/constant.
-3. Replace each duplicate site with an import + call.
-4. Keep behavior identical; add a `NOTE:` comment only if a nuance is non-obvious.
-5. Run the owning package's checks and fix any breakage before the next item:
-
----
-
-## Phase 6 — Verify
-
-- Re-run jscpd on the touched scope to confirm the clone count dropped.
-- Summarise what was extracted and where.
-
----
-
-## Example invocations
-
-```text
-Use check-duplicates on functions/src
-```
-
-- "check my changes for duplicate code"
-- "find copy-paste in the client and dedupe the safe ones"

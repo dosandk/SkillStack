@@ -1,18 +1,12 @@
 ---
-description: Error handling and logging — English messages, actionable errors, correct log levels, no secrets
-globs: "**/*.{ts,tsx,js,jsx,mjs,cjs}"
+description: Error logging
+globs: '**/*.{ts,tsx,js,jsx,mjs,cjs}'
 alwaysApply: true
 ---
 
-# Error handling and logging
+# Error logging
 
-Messages surfaced to developers — in thrown errors and in logs — must be written
-in English. This keeps stack traces, console output, and log aggregation
-readable for every contributor.
-
-## Errors
-
-### Rule 1 — Throw `Error`, never strings
+## Rule 1 — Throw `Error`, never strings
 
 Throw an `Error` (or a subclass), never a string or plain object — only `Error`
 carries a stack trace.
@@ -26,7 +20,7 @@ throw { code: 404 };
 throw new Error('Repository tree not found');
 ```
 
-### Rule 2 — Actionable and specific
+## Rule 2 — Actionable and specific
 
 State what failed and include the relevant context (identifier, value, status) so
 the message is diagnosable on its own. Avoid bare "Error" / "Something went wrong".
@@ -39,7 +33,7 @@ throw new Error('request failed');
 throw new Error(`GitHub API ${response.status} for ${owner}/${repo}`);
 ```
 
-### Rule 3 — Preserve the original cause when wrapping
+## Rule 3 — Preserve the original cause when wrapping
 
 When catching and rethrowing, attach the original error via the `cause` option
 instead of discarding it or flattening it into a string.
@@ -56,14 +50,16 @@ catch (error) {
 }
 ```
 
-### Rule 4 — Never swallow errors
+## Rule 4 — Never swallow errors
 
 No empty `catch`. Either handle it, rethrow it (optionally wrapped), or log it
 with context — silent failures hide bugs.
 
 ```ts
 // ❌ BAD
-try { await pull(options); } catch {}
+try {
+  await pull(options);
+} catch {}
 
 // ✅ GOOD
 try {
@@ -74,9 +70,7 @@ try {
 }
 ```
 
-## Logging
-
-### Rule 5 — Use the right level
+## Rule 5 — Use the right level
 
 Pick the level by intent: `console.error` for failures, `console.warn` for
 recoverable or unexpected-but-tolerated conditions, `console.log`/`info` for
@@ -92,7 +86,7 @@ console.warn(`Directory "${prefix}" is truncated — result may be partial`);
 console.log(`Repository: ${owner}/${repo} (ref: ${resolvedRef})`);
 ```
 
-### Rule 6 — Include context, not just static text
+## Rule 6 — Include context, not just static text
 
 Log the identifiers needed to act on the message (repo, ref, path, count) rather
 than a generic sentence.
@@ -105,12 +99,10 @@ console.log('done');
 console.log(`Created ${createdFiles} file(s) and ${createdDirs} dir(s)`);
 ```
 
-### Rule 7 — Keep volume proportionate
+## Rule 7 — Keep volume proportionate
 
 Log meaningful events, not every iteration of a hot loop. Summarize bulk work
 with a count instead of one line per item when the per-item detail adds no value.
-
-## Never log or expose secrets
 
 Never put tokens, passwords, keys, or personal data in an error message or log —
 they leak into stack traces and log aggregation.
@@ -124,14 +116,3 @@ throw new Error(`Auth failed for token ${token}`);
 console.log('Authorizing with provided token');
 throw new Error('Authentication failed (401)');
 ```
-
-## Checklist
-
-- Error and log messages are in English.
-- Throw `Error` (or a subclass), never a string/object.
-- Messages are actionable: subject + context (id, value, status).
-- Wrapped errors preserve the original via `{ cause }`.
-- No empty `catch`; errors are handled, rethrown, or logged with context.
-- Correct level: `error` for failures, `warn` for recoverable, `log` for progress.
-- No secrets or personal data in messages.
-- Localized UI copy lives in i18n files, not inline literals.

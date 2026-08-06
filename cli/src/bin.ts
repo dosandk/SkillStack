@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
-import chalk from 'chalk';
+// import chalk from 'chalk';
 import { Command } from 'commander';
 
 import { add } from './commands';

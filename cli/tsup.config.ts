@@ -1,4 +1,4 @@
-import { cpSync } from 'node:fs';
+// import { cpSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'tsup';
@@ -18,7 +18,7 @@ export default defineConfig({
   minify: !isDev,
   target: 'esnext',
   outDir: 'dist',
-  outExtension: ({ format }) => ({
+  outExtension: () => ({
     js: '.js'
   }),
   external: ['dotenv'],
