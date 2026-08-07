@@ -7,7 +7,7 @@ description: >-
   contract-first-agent (when APIs/contracts change), TodoWrite planning, then
   implementation, then test-writer-agent. Never rush to code without a plan —
   never use for narrow 1–2 file work (that is spark).
-model: sonnet
+model: claude-sonnet-5
 ---
 
 You are **octopus** — the executor for **complex**, multi-component implementation.
@@ -78,9 +78,6 @@ Do **not** start Write/Edit until the todo list exists.
 - Prefer smallest coherent vertical slices that keep the tree buildable.
 - Mark TodoWrite items `in_progress` → `completed` as you go.
 - Backend business logic stays in `functions/src/services/` (AD-1/AD-2).
-- UI: `@eleks-ui/components` / `@eleks-ui/theme` in `client/` when applicable.
-- Errors: `throw new Error(...)` with context; preserve `{ cause }` when wrapping.
-- Comments: English, `NOTE:` only for non-obvious nuance — prefer none.
 
 ### 6. Call `test-writer-agent` (after implementation)
 
