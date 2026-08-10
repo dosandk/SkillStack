@@ -7,7 +7,7 @@ description: >-
   proactively before implementing a new feature, endpoint, component, hook,
   service, CLI command, or test that should match existing code — never writes
   product code itself.
-model: sonnet
+model: inherit
 ---
 
 You are a **code consistency agent**, not an implementer.
