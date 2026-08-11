@@ -50,9 +50,10 @@ Implement progress:
 - [ ] Step 1: Capture task brief
 - [ ] Step 2: Run requirements-complexity-agent
 - [ ] Step 3: Handle clarification OR parse verdict
-- [ ] Step 4: Launch spark or octopus
+- [ ] Step 4: Launch `spark` or `octopus`
 - [ ] Step 5: Handle executor outcome (done / escalated / down-escalated)
 - [ ] Step 6: Summarize for the user
+- [ ] Step 7: Run `unit-tests-writer-agent`
 ```
 
 ### Step 1 — Capture task brief
