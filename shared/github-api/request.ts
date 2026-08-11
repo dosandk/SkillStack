@@ -6,26 +6,25 @@ interface RequestOptions {
   headers?: Record<string, string>;
 }
 
-export const request = async (
+export const request = async <T = unknown>(
   endpoint: string,
   options?: RequestOptions
-): Promise<unknown> => {
+): Promise<T> => {
   const baseUrl = 'https://api.github.com';
 
   const method = options?.method?.toUpperCase() || 'GET';
   const url = `${baseUrl}/${endpoint}`;
 
-  const requestOptions: RequestInit = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers
-    }
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...options?.headers
   };
 
   if (GITHUB_TOKEN) {
-    requestOptions.headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
+    headers['Authorization'] = `Bearer ${GITHUB_TOKEN}`;
   }
+
+  const requestOptions: RequestInit = { method, headers };
 
   if (options?.body !== undefined) {
     requestOptions.body = JSON.stringify(options.body) as BodyInit;
@@ -61,7 +60,7 @@ export const request = async (
     );
   }
 
-  return json;
+  return json as T;
 };
 
 export class GithubApiError extends Error {

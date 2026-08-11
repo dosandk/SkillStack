@@ -20,7 +20,6 @@ interface RepoInfo {
 export const getRepoInfo = async (repoUrl: string): Promise<RepoInfo> => {
   const { owner, repo } = parseRepoPath(repoUrl);
 
-  // NOTE: fix ts error for second optional arg
   const repoDetails = await request<GithubRepoDetails>(
     `repos/${owner}/${repo}`,
     {}

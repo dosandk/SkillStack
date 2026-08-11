@@ -22,7 +22,7 @@ let githubService: GithubService = {
 if (import.meta.env.DEV) {
   const { githubServiceMock } = await import('./mock/index');
 
-  githubService = githubServiceMock as GithubService;
+  githubService = githubServiceMock as unknown as GithubService;
 }
 
 export { githubService };

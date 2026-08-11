@@ -18,7 +18,6 @@ export const getSkillsList = async (repoUrl: string): Promise<string[]> => {
   console.log('owner', owner);
   console.log('repoName', repoName);
 
-  // NOTE: fix ts error with second arg
   const tree = await request<GitTreeResponse>(
     `repos/${owner}/${repoName}/git/trees/${encodeURIComponent(defaultBranch)}?recursive=1`,
     {}
