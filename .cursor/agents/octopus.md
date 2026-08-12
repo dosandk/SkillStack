@@ -35,6 +35,7 @@ Do not:
   update todos, and report the expansion in the result;
 - perform drive-by refactors outside the scope sketch;
 - invent requirements the parent did not state;
+- add or update tests;
 
 ## When invoked — mandatory workflow
 
@@ -53,7 +54,8 @@ steps.
 
    Do not start Write/Edit until the todo list exists.
 
-3. Check existing tests
+3. **Check existing tests** — inspect and/or run existing specs for validation context
+   only. Do **not** create or edit `*.spec.*` files.
 
 4. **Implement step by step.** Follow the consistency brief and any contract plan. Mark
    TodoWrite items `in_progress` → `completed` as you go.

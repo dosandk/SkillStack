@@ -19,7 +19,7 @@ let githubService: GithubService = {
 // TODO: rethink this
 // NOTE: dynamic import inside the development guard — tsup inlines process.env.NODE_ENV
 // at build time, so the production bundle drops this branch (and the mock module) entirely.
-if (import.meta.env.DEV) {
+if (import.meta.env?.DEV) {
   const { githubServiceMock } = await import('./mock/index');
 
   githubService = githubServiceMock as unknown as GithubService;

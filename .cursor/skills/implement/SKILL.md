@@ -3,7 +3,7 @@ name: implement
 description: >-
   Orchestrate implementation tasks via requirements-complexity-agent triage,
   then route to spark (simple) or octopus (complex). Use when the user asks to
-  implement, build, add, create, fix, or refactor a feature, bugfix, API,
+  implement, build, add, create, fix, or refactor a feature, bug fix, API,
   UI page, CLI command, Cloud Function, or schema change — before writing any
   product code. Never skip triage, even for trivial one-file changes.
 ---
@@ -16,8 +16,10 @@ product code is written. Agent definitions live under `.cursor/agents/`.
 | Agent                           | Definition                                        | Role                                                   |
 | ------------------------------- | ------------------------------------------------- | ------------------------------------------------------ |
 | `requirements-complexity-agent` | `.cursor/agents/requirements-complexity-agent.md` | Triage only — returns verdict or clarification request |
-| `spark`                         | `.cursor/agents/spark.md`                         | Simple, local implementation                           |
-| `octopus`                       | `.cursor/agents/octopus.md`                       | Complex, multi-component implementation                |
+| `spark`                         | `.cursor/agents/spark.md`                         | Simple, local implementation (product code only)       |
+| `octopus`                       | `.cursor/agents/octopus.md`                       | Complex, multi-component implementation (product only) |
+| `unit-tests-writer`             | `.cursor/agents/unit-tests-writer.md`             | Post-executor unit tests when classified               |
+| `e2e-tests-writer`              | `.cursor/agents/e2e-tests-writer.md`              | Post-executor E2E tests when classified                |
 
 ## Hard rules
 
@@ -31,6 +33,12 @@ product code is written. Agent definitions live under `.cursor/agents/`.
 - **One executor at a time** — do not run spark and octopus in parallel.
 - **Clarification is the parent's job** — if triage returns `NEEDS_CLARIFICATION`,
   ask the user (AskQuestion when available), then re-run triage with answers.
+- **Never ask spark or octopus to write or update tests** — do not put
+  test-writing instructions in the Step 4 executor prompt. Tests are only
+  Step 6 (`unit-tests-writer` and/or `e2e-tests-writer`, or skip).
+- **Parent owns test-type routing** — Step 6 classifies unit / e2e / both /
+  none from packages, acceptance criteria, and the diff; then launches zero or
+  more test writers.
 - **No git commit / push** unless the user explicitly asked
 
 Skip this skill only when:
@@ -52,8 +60,8 @@ Implement progress:
 - [ ] Step 3: Handle clarification OR parse verdict
 - [ ] Step 4: Launch `spark` or `octopus`
 - [ ] Step 5: Handle executor outcome (done / escalated / down-escalated)
-- [ ] Step 6: Summarize for the user
-- [ ] Step 7: Run `unit-tests-writer-agent`
+- [ ] Step 6: Classify needed tests → launch unit-tests-writer and/or e2e-tests-writer (or skip)
+- [ ] Step 7: Summarize for the user
 ```
 
 ### Step 1 — Capture task brief
@@ -147,6 +155,9 @@ Full Repository Path: <absolute workspace path>
 ## Task brief
 
 <goal, acceptance criteria, packages, constraints>
+
+Do not add or update tests — the parent classifies and runs unit-tests-writer
+and/or e2e-tests-writer as needed after you finish.
 ```
 
 Wait for the executor to finish. Do not implement in the parent in parallel.
@@ -173,15 +184,85 @@ spark already identified a clearly complex remainder.
 
 Never silently ignore escalation or down-escalation.
 
-### Step 6 — Summarize for the user
+### Step 6 — Classify and run test writers
+
+After a successful executor `done` with product-code changes, **classify** which
+tests are needed, then launch zero or more writers. Do not always run unit
+tests — simple requests may need none.
+
+#### Classification
+
+Decide from packages touched, acceptance criteria, and the diff:
+
+| Classification | When |
+| -------------- | ---- |
+| **none** | No product changes; blocked/escalated with nothing worth covering; docs/wiki/ADR-only; trivial copy/layout with no branching and no observable contract (e.g. static label, one-line wiring with no behavior) |
+| **unit** | New/changed testable logic in `client/`, `functions/`, `cli/`, or `shared/` (hooks, stores, parsers, handlers, pure utils) that unit tests can protect |
+| **e2e** | User-visible flows or UI acceptance in `client/` (list/empty states, auth gates, favorites, share links, multi-step journeys) that need browser + emulator coverage |
+| **both** | Both kinds of risk are present (common for API + UI features) |
+
+Record the choice for Step 7: `tests: unit | e2e | both | none — <one-line reason>`.
+
+Skip launching any writer when classification is **none**, or when:
+
+- executor status was `blocked`, or
+- escalated / down-escalated with **no** product changes worth covering
+
+Do not ask spark or octopus to write tests instead of this step.
+
+#### Launch order
+
+When both are selected, run **sequentially**: `unit-tests-writer` first, then
+`e2e-tests-writer`. Always `run_in_background: false`.
+
+##### `unit-tests-writer`
+
+- `subagent_type: "unit-tests-writer"`
+- `description: "Write unit tests"`
+
+```text
+Full Repository Path: <absolute workspace path>
+
+## Context
+
+Product implementation just finished via <spark | octopus>. Analyze the current
+uncommitted diff, identify meaningful behavior that still lacks unit-test
+coverage, and add only the tests necessary to protect that behavior.
+
+Follow your agent instructions (git diff scope, existing patterns, validation
+commands). Do not commit.
+```
+
+##### `e2e-tests-writer`
+
+- `subagent_type: "e2e-tests-writer"`
+- `description: "Write e2e tests"`
+
+```text
+Full Repository Path: <absolute workspace path>
+
+## Context
+
+Product implementation just finished via <spark | octopus>. Analyze the current
+uncommitted diff, identify meaningful user-visible journeys that still lack E2E
+coverage, and add only the Playwright tests necessary to protect those journeys.
+
+Follow your agent instructions (git diff scope, discover Playwright patterns
+in-repo, validation commands — npm run test:e2e). Do not commit.
+```
+
+### Step 7 — Summarize for the user
 
 Return a short summary:
 
 1. **Triage** — verdict (`simple` / `complex`) in one line
 2. **Outcome** — done / escalated / blocked + what changed
-3. **Files touched** — key paths (not a raw dump unless small)
-4. **Checks** — typecheck/lint/tests run and result
-5. **Follow-ups** — ADR candidate, manual verification, or commit if the user
+3. **Files touched** — key paths from executor and any test writers (not a raw
+   dump unless small)
+4. **Tests** — `unit | e2e | both | none — <reason>`, plus each writer outcome
+   (or "skipped — <reason>")
+5. **Checks** — typecheck/lint/tests run and result
+6. **Follow-ups** — ADR candidate, manual verification, or commit if the user
    asked
 
 Do not paste entire agent outputs unless the user asks for details.
@@ -207,15 +288,34 @@ new triage prompt.
 
 1. User: "Add a button that shows Hello World"
 2. Triage → `Verdict: simple`, `Executor: spark`
-3. Spark implements in `client/` using ELEKS UI patterns
-4. Summary: one component + App wiring, typecheck pass
+3. Spark implements in `client/` using ELEKS UI patterns (no tests)
+4. Parent classifies → **tests: none** (trivial wiring / no branching contract)
+5. Summary: one component + App wiring; no test writers launched
+
+### Pure shared parser (expected path)
+
+1. User: "Add parseShareToken helper in shared/"
+2. Triage → `Verdict: simple`, `Executor: spark`
+3. Spark implements parser (no tests)
+4. Parent classifies → **tests: unit** → `unit-tests-writer`
+5. Summary: helper + unit coverage
+
+### Catalog empty-state UI (expected path)
+
+1. User: "Show empty state when the repository list has no items"
+2. Triage → `Verdict: simple` or `complex` per scope
+3. Executor implements UI (no tests)
+4. Parent classifies → **tests: e2e** (and **unit** if logic was extracted) →
+   launch matching writers
+5. Summary: UI change + E2E journey coverage
 
 ### New API + client feature (expected path)
 
 1. User: "Add install tracking endpoint and show count in the UI"
 2. Triage → `Verdict: complex`, `Executor: octopus`
-3. Octopus: consistency brief → todos → functions + client + tests
-4. Summary: packages touched, tests added, emulator note if relevant
+3. Octopus: consistency brief → todos → functions + client (product only)
+4. Parent classifies → **tests: both** → `unit-tests-writer` then `e2e-tests-writer`
+5. Summary: packages touched, both writer outcomes, emulator note if relevant
 
 ### Ambiguous request
 
@@ -232,6 +332,9 @@ Before marking implement complete:
 
 - [ ] Triage ran before any product code
 - [ ] Executor matched verdict (`spark` / `octopus`)
+- [ ] Executor was not asked to write or update tests
 - [ ] Escalation or down-escalation handled explicitly if it occurred
-- [ ] User got a concise summary with outcome and key paths
+- [ ] Step 6 classification recorded (`unit | e2e | both | none`) with a reason
+- [ ] Selected test writers ran (or skip was justified)
+- [ ] User got a concise summary with outcome, key paths, and test routing result
 - [ ] No commit unless explicitly requested

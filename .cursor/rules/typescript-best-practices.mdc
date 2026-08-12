@@ -1,1 +1,171 @@
-TODO:
+---
+description: TypeScript conventions — interface vs type, validation boundaries, import type, React TS patterns
+globs: '**/*.{ts,tsx}'
+alwaysApply: false
+---
+
+# TypeScript best practices
+
+## Types
+
+Prefer `interface` for object shapes (props, options, DTOs):
+
+```ts
+// ❌ BAD
+type ItemOptions = { name: string; limit?: number };
+
+// ✅ GOOD
+interface ItemOptions {
+  name: string;
+  limit?: number;
+}
+```
+
+Prefer `type` for inferred schema types, intersections, unions, and aliases:
+
+```ts
+// ❌ BAD — hand-duplicating a schema / forcing a union into an interface
+interface Item {
+  name: string;
+}
+interface Status {
+  kind: 'idle' | 'loading' | 'error';
+}
+
+// ✅ GOOD
+type Item = z.infer<typeof itemSchema>;
+type Status = 'idle' | 'loading' | 'error';
+type ItemWithId = Item & { id: string };
+```
+
+Colocate types with the module; export only what other packages need:
+
+```ts
+// ❌ BAD — barrel re-exports every private helper type
+export type { InternalParseState, ItemOptions };
+
+// ✅ GOOD — export the public contract only
+interface InternalParseState {
+  /* ... */
+}
+export interface ItemOptions {
+  name: string;
+}
+```
+
+## Validation
+
+Public / untrusted input is `unknown`; validate with a schema at the boundary:
+
+```ts
+// ❌ BAD
+async function addItem(input: any) {
+  return store.add(input as Item);
+}
+
+// ✅ GOOD
+async function addItem(input: unknown): Promise<Item[]> {
+  const item = itemSchema.parse(input);
+  return store.add(item);
+}
+```
+
+Own the schema next to the boundary; derive types from the schema:
+
+```ts
+// ❌ BAD — hand-written type drifts from runtime checks
+interface Item {
+  name: string;
+}
+function addItem(input: Item) {
+  /* no parse */
+}
+
+// ✅ GOOD
+const itemSchema = z.object({ name: z.string().min(1) });
+type Item = z.infer<typeof itemSchema>;
+```
+
+Prefer throw-on-invalid over Result / `safeParse` for domain APIs:
+
+```ts
+// ❌ BAD
+const parsed = itemSchema.safeParse(input);
+if (!parsed.success) return { ok: false, error: parsed.error };
+
+// ✅ GOOD
+const item = itemSchema.parse(input);
+```
+
+## Control flow
+
+Prefer early returns / guard clauses over deep nesting:
+
+```ts
+// ❌ BAD
+function label(item?: Item) {
+  if (item) {
+    if (item.name) {
+      return item.name;
+    }
+  }
+  return 'unknown';
+}
+
+// ✅ GOOD
+function label(item?: Item) {
+  if (!item?.name) return 'unknown';
+  return item.name;
+}
+```
+
+## Type-only imports
+
+Use `import type` or inline `type` specifiers for type-only imports:
+
+```ts
+// ❌ BAD
+import { CatalogItem, createContext, ReactNode } from '...';
+
+// ✅ GOOD
+import type { CatalogItem } from '../types/catalog';
+import { createContext, type ReactNode } from 'react';
+```
+
+## Avoid
+
+No `enum` or `namespace` — prefer string literal unions and schemas:
+
+```ts
+// ❌ BAD
+enum Status {
+  Idle,
+  Loading
+}
+namespace Items {
+  export type Id = string;
+}
+
+// ✅ GOOD
+type Status = 'idle' | 'loading';
+type ItemId = string;
+```
+
+## React
+
+Name props `ComponentNameProps`; colocate; usually leave unexported.
+Use `function Component(props: Props)` — not `React.FC`:
+
+```tsx
+// ❌ BAD
+const ListItem: React.FC<{ item: Item }> = ({ item }) => <li>{item.name}</li>;
+
+// ✅ GOOD
+interface ListItemProps {
+  item: Item;
+}
+
+export function ListItem({ item }: ListItemProps) {
+  return <li>{item.name}</li>;
+}
+```

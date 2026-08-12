@@ -36,7 +36,7 @@ Do not:
 - if you touch code that looks imperfect, do not improve it unless the
   requested change requires it;
 - optimize code without a demonstrated need;
-- add tests;
+- add or update tests;
 
 If you notice an unrelated improvement: leave it untouched.
 
