@@ -1,14 +1,22 @@
 ---
 name: implement
 description: >-
-  Orchestrate implementation tasks via requirements-complexity-agent triage,
-  then route to spark (simple) or octopus (complex). Use when the user asks to
-  implement, build, add, create, fix, or refactor a feature, bug fix, API,
-  UI page, CLI command, Cloud Function, or schema change — before writing any
-  product code. Never skip triage, even for trivial one-file changes.
+  Mandatory gate for ANY project change. Read and follow this skill before
+  Write/Edit/Delete on repo files whenever the user wants to change, add, fix,
+  update, remove, refactor, configure, style, wire, or improve anything in the
+  codebase — including trivial one-line, one-file, UI-only, config, test, CLI,
+  functions, or docs-in-repo edits. Orchestrates requirements-complexity-agent
+  triage, then spark (simple) or octopus (complex). Never implement product
+  code in the parent without this workflow. Skip ONLY for pure Q&A, read-only
+  review, commit-only, or explicit "do not change code" requests.
 ---
 
 # Implement
+
+**Default workflow for every project change.** If the user's message implies
+that files in this repository should be created or modified, **read this skill
+first** and run the full workflow below — **before** any `Write`, `Edit`, or
+`Delete` on project files.
 
 Orchestrate implementation through **mandatory complexity triage** before any
 product code is written. Agent definitions live under `.cursor/agents/`.
@@ -20,6 +28,47 @@ product code is written. Agent definitions live under `.cursor/agents/`.
 | `octopus`                       | `.cursor/agents/octopus.md`                       | Complex, multi-component implementation (product only) |
 | `unit-tests-writer`             | `.cursor/agents/unit-tests-writer.md`             | Post-executor unit tests when classified               |
 | `e2e-tests-writer`              | `.cursor/agents/e2e-tests-writer.md`              | Post-executor E2E tests when classified                |
+
+## Mandatory gate (run before touching the repo)
+
+On **every** user turn, decide:
+
+```
+Does this request imply changing anything in the repo?
+├── YES → Read this skill → run Steps 1–7 (no parent Write/Edit/Delete until executor runs)
+└── NO  → Skip this skill (see "Skip only when" below)
+```
+
+Treat as **YES** even when the user:
+
+- describes the change indirectly ("make it nicer", "this is broken", "can you handle X?")
+- asks in any language (Ukrainian, English, etc.)
+- says the change is small, quick, trivial, or "just one line / one file / one button"
+- continues a prior task that still needs code changes
+- asks to revert, undo, or roll back prior edits (that is still a repo change)
+
+**Never** bypass this skill because the task "looks simple" or "only UI" — triage
+exists precisely for that case.
+
+## When to use (always)
+
+Use this skill when the user wants **any** of the following anywhere under the
+repo (`client/`, `functions/`, `cli/`, `shared/`, `wiki/`, `.cursor/` agents/skills
+when the user asked to change them, root config that affects the product):
+
+| Category | Examples (non-exhaustive) |
+| -------- | ------------------------- |
+| **Create / add** | new component, page, hook, API, schema, CLI command, skill, agent, test file |
+| **Change / update** | edit behavior, copy, layout, styling, props, config, env templates, types |
+| **Fix** | bug, regression, failing test, lint/type error the user wants resolved in code |
+| **Remove / delete** | dead code, feature, file, dependency usage |
+| **Refactor / rename / move** | restructure module, extract helper, rename symbol or path |
+| **Wire / integrate** | connect UI to API, add route, hook up Firebase, import new package usage |
+| **Improve / polish** | "make a nice button", "clean this up", "optimize", "simplify" — if it edits files |
+
+If you are **unsure** whether the user wants a repo change, **assume YES** and
+either run triage or ask one clarifying question — do **not** start editing files
+while unsure.
 
 ## Hard rules
 
@@ -41,11 +90,30 @@ product code is written. Agent definitions live under `.cursor/agents/`.
   more test writers.
 - **No git commit / push** unless the user explicitly asked
 
-Skip this skill only when:
+### Skip only when (narrow exceptions)
 
-- The user wants Q&A, docs, or review with **no code change**
-- Implementation is already mid-flight with a chosen executor and the user is
-  continuing that work (not starting a new task).
+Do **not** use this skill **only** if **all** of the following hold:
+
+1. The user clearly wants **no** file changes — explain, compare options, or
+   read-only investigation only.
+2. **Or** a dedicated read-only skill applies instead:
+   - **review** — review diff / PR / uncommitted changes without fixing
+   - **git-commit** — commit already-made changes only
+   - **update-adr** — ADR/wiki documentation only when no product code changes
+3. **Or** implement is **already mid-flight**: triage completed, executor
+   (`spark` / `octopus`) is running or just finished for the **same** task, and
+   the user is continuing that work — not starting a new change request.
+
+If the user asks a question **and** wants a fix ("why does X fail? fix it"),
+that is **not** skip — run **implement**.
+
+### Anti-patterns (never do this)
+
+- Jumping straight to `Write`/`Edit` because the task is "just UI" or "one button"
+- Using only `use-eleks-ui` (or another domain skill) instead of **implement**
+  when files will change — domain skills complement implement; they do not replace it
+- Skipping triage because you already know the answer will be `simple`
+- Implementing in the parent agent while spark/octopus should run
 
 ---
 
@@ -166,23 +234,22 @@ Wait for the executor to finish. Do not implement in the parent in parallel.
 
 #### Spark result
 
-| Status      | Parent action                                                                                                  |
-| ----------- | -------------------------------------------------------------------------------------------------------------- |
-| `done`      | Proceed to Step 6                                                                                              |
-| `escalated` | Re-run Step 2 (re-triage) **or** launch `octopus` with spark's escalation context + any partial changes listed |
+| Status      | Parent action             |
+| ----------- | ------------------------- |
+| `done`      | Proceed to Step 6         |
+| `escalated` | Re-run Step 2 (re-triage) |
 
 Prefer re-triage when the escalation changes scope materially; prefer octopus when
 spark already identified a clearly complex remainder.
 
 #### Octopus result
 
-| Status           | Parent action                                  |
-| ---------------- | ---------------------------------------------- |
-| `done`           | Proceed to Step 6                              |
-| `blocked`        | Report blocker to user; do not guess around it |
-| `down-escalated` | Launch `spark` with octopus's narrowed brief   |
+| Status      | Parent action             |
+| ----------- | ------------------------- |
+| `done`      | Proceed to Step 6         |
+| `escalated` | Re-run Step 2 (re-triage) |
 
-Never silently ignore escalation or down-escalation.
+Never silently ignore escalation
 
 ### Step 6 — Classify and run test writers
 
@@ -194,12 +261,12 @@ tests — simple requests may need none.
 
 Decide from packages touched, acceptance criteria, and the diff:
 
-| Classification | When |
-| -------------- | ---- |
-| **none** | No product changes; blocked/escalated with nothing worth covering; docs/wiki/ADR-only; trivial copy/layout with no branching and no observable contract (e.g. static label, one-line wiring with no behavior) |
-| **unit** | New/changed testable logic in `client/`, `functions/`, `cli/`, or `shared/` (hooks, stores, parsers, handlers, pure utils) that unit tests can protect |
-| **e2e** | User-visible flows or UI acceptance in `client/` (list/empty states, auth gates, favorites, share links, multi-step journeys) that need browser + emulator coverage |
-| **both** | Both kinds of risk are present (common for API + UI features) |
+| Classification | When                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **none**       | No product changes; blocked/escalated with nothing worth covering; docs/wiki/ADR-only; trivial copy/layout with no branching and no observable contract (e.g. static label, one-line wiring with no behavior) |
+| **unit**       | New/changed testable logic in `client/`, `functions/`, `cli/`, or `shared/` (hooks, stores, parsers, handlers, pure utils) that unit tests can protect                                                        |
+| **e2e**        | User-visible flows or UI acceptance in `client/` (list/empty states, auth gates, favorites, share links, multi-step journeys) that need browser + emulator coverage                                           |
+| **both**       | Both kinds of risk are present (common for API + UI features)                                                                                                                                                 |
 
 Record the choice for Step 7: `tests: unit | e2e | both | none — <one-line reason>`.
 
@@ -286,11 +353,18 @@ new triage prompt.
 
 ### Simple UI button (expected path)
 
-1. User: "Add a button that shows Hello World"
-2. Triage → `Verdict: simple`, `Executor: spark`
-3. Spark implements in `client/` using ELEKS UI patterns (no tests)
-4. Parent classifies → **tests: none** (trivial wiring / no branching contract)
-5. Summary: one component + App wiring; no test writers launched
+1. User: "Add a button that shows Hello World" / "зроби гарну кнопку"
+2. Parent reads **implement** first — no direct edits
+3. Triage → `Verdict: simple`, `Executor: spark`
+4. Spark implements in `client/` using ELEKS UI patterns (no tests)
+5. Parent classifies → **tests: none** (trivial wiring / no branching contract)
+6. Summary: one component + App wiring; no test writers launched
+
+### Wrong path (do not repeat)
+
+1. User: "Make me a nice button"
+2. Parent reads `use-eleks-ui` and edits `App.tsx` directly ❌
+3. **Correct:** implement → triage → spark → summary
 
 ### Pure shared parser (expected path)
 
@@ -330,6 +404,7 @@ new triage prompt.
 
 Before marking implement complete:
 
+- [ ] Mandatory gate applied — request was classified as a repo change before any edit
 - [ ] Triage ran before any product code
 - [ ] Executor matched verdict (`spark` / `octopus`)
 - [ ] Executor was not asked to write or update tests

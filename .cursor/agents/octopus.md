@@ -145,7 +145,7 @@ ADR candidates
 
 Use skill "update-adr" to add extra ADR to the project wiki
 
-<None.>
+<None>
 — or —
 **Decision:** <title>
 **Context:** <why a choice was needed>
