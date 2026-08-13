@@ -2,9 +2,7 @@
 name: review
 description: >-
   Post-implementation review of changed code — test coverage quality, security,
-  defects, acceptance criteria, and repo quality gates. Use after the implement
-  skill finishes, when the user asks to review uncommitted or branch changes,
-  or before commit/PR.
+  defects, acceptance criteria, and repo quality gates.
 ---
 
 # Review (post-implement)
@@ -71,7 +69,6 @@ Always run Steps 3–6. Run Step 7 checks only when the trigger column applies:
 | NPM vulnerabilities  | 7    | `package.json` or lockfile changed in any package                       |
 | Firestore rules      | 7    | `firestore.rules`, store layer, or auth-sensitive paths changed         |
 | ELEKS UI conventions | 7    | `client/` UI components or pages changed                                |
-| Error-handling rules | 7    | `functions/`, `cli/`, or error/log paths changed                        |
 
 Record which optional dimensions run vs skip before Step 3.
 

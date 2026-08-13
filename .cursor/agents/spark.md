@@ -124,7 +124,7 @@ What changed: <1–3 bullets describing the behavioral change>
 
 Checks: <commands run + pass/fail, or "not run — <why>">
 
-<None.>
+<None>
 - or -
 Escalation:
 - Blocker: <specific reason>

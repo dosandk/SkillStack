@@ -83,7 +83,6 @@ Score each dimension **Low / High**. Then apply the decision rule.
 | **Domain uncertainty**  | Clear acceptance criteria; obvious analog exists | Ambiguous requirements; new domain concept;                            |
 | **Data / contracts**    | No schema or API shape breaking changes          | Breaking changes of shema, public API, Firestore shape, Zod, auth, etc |
 | **Architecture risk**   | Fits existing patterns; no AD tension            | Introducing new architecture patterns and/or breaking existing one     |
-| **Test / E2E load**     | Unit tweak or none                               | New integration/E2E paths, emulator flows, multi-actor scenarios       |
 | **Migration / rollout** | Additive, reversible                             | Data backfill, dual-write, feature flag, or irreversible migrate       |
 
 ## Decision rule (verdict path)

@@ -2,38 +2,40 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Mandatory workflow gate
+
+For **any** change to files in this repo — however trivial (one line, UI-only, config, test, CLI, functions, docs-in-repo) — follow the agent triage flow instead of editing directly: run `requirements-complexity-agent` first, then `spark` (simple) or `octopus` (complex), with `unit-tests-writer` / `e2e-tests-writer` after when tests are classified. The full contract is in `.cursor/skills/implement/SKILL.md`; agent definitions are in `.cursor/agents/`. Skip only for pure Q&A, read-only review, commit-only, or explicit "don't change code" requests.
+
 ## Repository layout
 
-This is a single-repo, multi-package project (not npm workspaces — each package has its own
-`package.json` / `node_modules` and is installed independently).
-TypeScript path aliases and base compiler options are centralized in `tsconfig.base.json`.
+Single repo, multiple independently-installed packages (NOT npm workspaces — `client` deps live in the root `package.json`; `functions/` and `cli/` each have their own `package.json` / `node_modules`). Node 24 (`.nvmrc` pins v24.3.0). Base TS options and cross-folder path aliases are centralized in `tsconfig.base.json` and mirrored in `vite.config.ts` / `vitest.config.ts`.
 
-- **`client/`** — React 19 + Vite front-end. Uses the vendored ELEKS UI component library (MUI-based). Firebase web SDK client in `client/src/lib/firebase.ts`. Root-level `package.json`, `vite.config.ts`, and `tsconfig.client.json` build this; Vite `root` is `client/`, output goes to `dist/`.
-- **`functions/`** — Firebase Cloud Functions (own `package.json`, `firebase-admin`, `firebase-functions`). The backend API.
-- **`cli/`** — `skillstack-cli`, a Commander-based CLI (own `package.json`, built with `tsup`). Commands: `push`, `pull`.
-- **`shared/`** — intended home for shared Zod schemas (currently empty; schemas presently live inside `functions/`).
-- **`wiki/`** — planning docs (stories, tasks, templates); not code.
+- **`client/`** — React 19 + Vite front-end. Vite `root` is `client/`; build output goes to `dist/`. Firebase web SDK client in `client/src/lib/firebase.ts`; backend call wrapper in `client/src/lib/api.ts`. Uses the vendored ELEKS UI library (see below).
+- **`functions/`** — Firebase Cloud Functions (own package, `firebase-admin` / `firebase-functions`). The backend API.
+- **`shared/`** — cross-package services & utils, exposed via the `@shared` alias. Exports `githubService` (`shared/github-api/`) and `backendService` (`shared/firebase-cloude-api/`). Consumed by both `cli/` and `client/`.
+- **`cli/`** — `skillstack-cli`, a Commander-based CLI built with `tsup` (entry `src/bin.ts`, lib `src/index.ts`). Main command lives in `cli/src/commands/add/` — pulls repo skill files from GitHub, tracks the install via `backendService`, and writes files into `.agents/`.
+- **`wiki/`** — planning docs (stories, tasks); not code.
+- **`e2e/`** — Playwright specs (`*.e2e.ts`).
 
-### ELEKS UI (client components)
+### Path aliases
 
-Import UI components only via the aliases, never by relative path:
+Always import via aliases, never relative paths across packages:
 
-```tsx
-import { Button, Avatar } from '@eleks-ui/components';
+```ts
+import { githubService, backendService } from '@shared';
+import { Button } from '@eleks-ui/components';
 import { EleksUIThemeProvider, useEleksUITheme } from '@eleks-ui/theme';
 ```
 
-Aliases (`@eleks-ui/components`, `@eleks-ui/theme`) are defined in both `tsconfig.base.json` and `vite.config.ts`.
-Component source lives under `client/src/components/eleks-ui/` (`core/`, `x-components/`, `custom/`). `*.figma.tsx`
-files are excluded from the build. There is also an `eleks-ui` skill with the full conventions — prefer it for any UI work.
+`@shared`, `@eleks-ui/components`, `@eleks-ui/theme` are defined in `tsconfig.base.json`, `vite.config.ts`, and `vitest.config.ts` (and `cli/tsup.config.ts` for `@shared`) — update all relevant places when adding one. ELEKS UI component source is under `client/src/components/eleks-ui/`; `*.figma.tsx` files are excluded from the build. For any UI work prefer the `use-eleks-ui` skill (`.cursor/skills/use-eleks-ui/`).
 
-## Backend architecture (functions/)
+## Backend architecture (`functions/`)
 
-Three layers, cleanly separated:
+`functions/src/index.ts` is the **only** file that exports Firebase entry points. It runs `admin.initializeApp()` before importing anything else, then re-exports each `apiXxx` handler. Every backend feature is a folder under `functions/src/functions/<name>/` with a strict three-layer split (see `.cursor/rules/single-responsibility.mdc`):
 
-1. **`functions/src/index.ts`** — the only file that exports Firebase entry points. Each `apiXxx` is a thin `onRequest` handler that calls a domain function, maps success/errors to HTTP status codes, and logs. `admin.initializeApp()` runs here before anything else is imported.
-2. **`functions/src/functions/*.ts`** — domain logic (`writeRepository`, `getRepositoriesList`, `trackInstall`). These validate input with Zod, orchestrate the store, and throw typed errors (e.g. `NotFoundError`) that the handler translates to status codes.
-3. **`functions/src/services/repositories-store.ts`** — the sole Firestore access layer. Owns collection names (`repositories`, `skills` subcollection), document shapes, the `repositorySchema`, and all read/write + per-skill install-counter operations. Domain code goes through this store rather than touching Firestore directly.
+1. **`index.ts` — handler.** A thin `onRequest` that maps HTTP ⇄ domain only: parse the request, call the domain function, translate result/errors to status codes, log at this boundary. No business rules, no Firestore.
+2. **`function.ts` — domain.** Business rules only. Validates input with a Zod schema at the boundary (`schema.parse`, throw-on-invalid), orchestrates the store, throws typed domain errors. Knows nothing about HTTP or Firestore APIs.
+3. **`functions/src/services/repositories-store.ts` — store.** The sole Firestore access layer: owns collection names (`repositories` + its `skills` subcollection), document shapes, `repositorySchema`, and all reads/writes/install-counter mutations. Domain code goes through the store, never touches Firestore directly.
 
 Data model: a `repositories` document holds repo metadata + `skills[]`; each skill is also a doc in that repo's `skills` subcollection carrying an `installCount`.
 
@@ -42,33 +44,69 @@ Data model: a `repositories` document holds repo metadata + `skills[]`; each ski
 Run from the **repo root** unless noted.
 
 ```bash
-npm run dev          # Vite dev server for the client
-npm run build        # typecheck + vite build → dist/
+npm run dev          # Vite dev server for the client (dev:client)
+npm run build        # tsc -p tsconfig.client.json + vite build → dist/
 npm run typecheck    # tsc -p tsconfig.client.json (no emit)
-npm run lint         # eslint .
-npm run test:run     # vitest run (client-side unit tests)
+npm run test:run     # vitest run — 'shared' project (node) + 'client' project (jsdom)
+npm run test:coverage
 npm run emulators    # firebase emulators:start (auth:9099, functions:5001, firestore:8080, UI on)
+npm run test:e2e     # build functions, then run Playwright under auth+functions+firestore emulators
+npm run sync-rules   # scripts/sync-rules.sh
 ```
+
+Run a single unit test: `npx vitest run path/to/file.spec.ts` or `npx vitest run -t "test name"`.
+
+**Linting:** the root `lint:eslint` / `lint:editorconfig` scripts are placeholder `echo` stubs; only `lint:prettier` runs. Run ESLint directly with `npx eslint .` (flat config in `eslint.config.js` — typescript-eslint + react-hooks + SonarJS). `husky` + `lint-staged` run prettier on staged `client/**` files pre-commit; `pre-push` runs the tests.
 
 ### Functions (run inside `functions/`)
 
 ```bash
+npm run build                 # tsc
 npm run test:run              # unit tests (*.spec.ts)
-npm run test:integration      # integration tests (*.i.spec.ts) against a RUNNING emulator
-npm run test:integration:ci   # build + spin up emulators, then run integration tests
-npm run test:all              # unit + integration:ci (this is the deploy predeploy gate)
+npm run test:integration      # integration specs against a RUNNING emulator (vitest.integration.config.js)
+npm run test:integration:ci   # build + spin up functions+firestore emulators, then integration tests
+npm run test:all              # unit + integration:ci — the deploy predeploy gate (see firebase.json)
 npm run serve                 # emulators for functions only
+npm run db:seed / db:clear    # seed/clear Firestore (node --experimental-strip-types)
 npm run deploy                # firebase deploy --only functions
 ```
 
-Run a single test file / test with vitest: `npx vitest run path/to/file.spec.ts` or `npx vitest run -t "test name"`.
-
-Integration specs (`*.i.spec.ts`) require the Firestore + Functions emulators and run **serially** (`fileParallelism: false`) because they share one emulator instance and clear/seed Firestore between runs. Emulator project/host config is in `functions/src/integration-specs/config.ts`.
+Integration specs require the Firestore + Functions emulators and run **serially** (they share one emulator instance and clear/seed Firestore between runs). `firebase deploy --only functions` is gated by `test:all` via the `predeploy` hook in `firebase.json`.
 
 ### CLI (run inside `cli/`)
 
 ```bash
 npm run build        # tsup → dist/ (bin at dist/bin.js)
-npm run dev          # tsup --watch (NODE_ENV=development)
+npm run dev          # tsup --watch
 npm run test:run     # vitest run
 ```
+
+### E2E (Playwright, from root)
+
+`test:e2e` builds `functions`, then runs `playwright test` inside `firebase emulators:exec`. It spawns the Vite **dev** server (not a build) so `import.meta.env.DEV` is true and the client targets the local Functions emulator. Specs run serially (`workers: 1`) because they share one emulator and clear/seed Firestore between cases. Also: `test:e2e:ui`, `test:e2e:headed`.
+
+## Testing conventions
+
+Full rules in `.cursor/rules/test-conventions.mdc`. Key points:
+
+- `*.spec.ts(x)` colocated next to the module under test. Unit specs `*.spec.ts`; integration specs use the functions integration config; Playwright specs are `*.e2e.ts` under `e2e/`.
+- Exactly **one** top-level `describe` per file (no nested/sibling `describe`), naming the unit in domain language. Cases are `it(...)` starting with `should`.
+- AAA body separated by **blank lines only** — never `// Arrange` / `// Act` / `// Assert` label comments.
+- Assert the specific error (message/type), not a bare `.toThrow()`.
+- Do **not** test Zod schemas directly — test the behavior of the function that consumes the schema.
+- Coverage thresholds (vitest): lines 90 / branches 85 / functions 90 / statements 90.
+
+## Code conventions
+
+Enforced via `.cursor/rules/*.mdc` — read the relevant rule before writing code:
+
+- **Errors** (`error-handling.mdc`, `alwaysApply`): throw `Error`/subclass (never strings); preserve root cause with `{ cause }`; log once at the boundary (handler / CLI entrypoint); use domain error types; validate public input early; no empty/rethrow-only `catch`; English messages, no secrets.
+- **Comments** (`code-comments.mdc`, `alwaysApply`): code is self-explanatory; comment only non-trivial nuances or upstream issue links; every comment is English and prefixed `NOTE:`.
+- **Naming** (`naming-convention.mdc`): no single-letter identifiers (except generics `T`/`K`/`V`/`E`, `_` unused); names state the domain, not the type; camelCase values, PascalCase types/components, SCREAMING_SNAKE module constants; React handlers use `event` not `e`.
+- **TypeScript** (`typescript-best-practices.mdc`): `interface` for object shapes, `type` for schema-inferred/unions/intersections; untrusted input typed `unknown` + validated with Zod at the boundary (throw-on-invalid, not `safeParse`); `import type` for type-only imports; no `enum`/`namespace`; React components as `function Component(props: Props)`, not `React.FC`.
+- **Imports** (`js-import-order.mdc`): built-ins → external libs → project/aliases → styles, each group blank-line separated.
+- **Single Responsibility** (`single-responsibility.mdc`): one reason to change; keep transport / domain / data-access in separate units (the `functions/` split is the reference).
+
+## Git & PRs
+
+Simplified Git Flow (`contributing.md`): `main` and `develop` are protected (PR only, ≥1 approval, CI must pass). Branch off `develop` for `feature/{issue}-{slug}`; off `main` for `hotfix/{issue}-{slug}`. Squash-merge, delete branch after. Commit messages follow `commitlint.config.js` (enforced by husky). Shared agent settings live under `.agents/` and are symlinked into `.claude/` / `.cursor/` — run `git config core.symlinks true` after cloning.
