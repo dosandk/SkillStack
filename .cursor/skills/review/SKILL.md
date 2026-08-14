@@ -5,7 +5,7 @@ description: >-
   defects, acceptance criteria, and repo quality gates.
 ---
 
-# Review (post-implement)
+# Review
 
 Orchestrate a **read-only** multi-dimensional review of the current change set.
 
@@ -26,18 +26,20 @@ Orchestrate a **read-only** multi-dimensional review of the current change set.
 
 ## Workflow
 
-Copy this checklist and track progress:
+Copy this checklist to track progress.
+Show review progress step by step in the main output.
 
 ```
 Review progress:
 - [ ] Step 1: Resolve scope and context
 - [ ] Step 2: Classify dimensions to run
-- [ ] Step 3: Coverage review
-- [ ] Step 4: Security review
-- [ ] Step 5: Defect review (Bugbot)
-- [ ] Step 6: Acceptance criteria check
-- [ ] Step 7: Optional quality gates (as classified)
+- [ ] Step 3: Coverage review (run in parallel)
+- [ ] Step 4: Security review (run in parallel)
+- [ ] Step 5: Defect review (Bugbot) (run in parallel)
+- [ ] Step 6: Acceptance criteria check (run in parallel)
+- [ ] Step 7: Optional quality gates (as classified) (run in parallel)
 - [ ] Step 8: Unified report
+
 ```
 
 ### Step 1 — Resolve scope and context
@@ -75,6 +77,8 @@ Record which optional dimensions run vs skip before Step 3.
 ---
 
 ### Step 3 — Coverage review
+
+Run this step in parallel.
 
 Assess **quality of test protection**, not just line percentages.
 
@@ -114,6 +118,8 @@ Assign one overall label:
 
 ### Step 4 — Security review
 
+Run this step in parallel.
+
 Launch exactly one `security-review` subagent:
 
 - `subagent_type: "security-review"`
@@ -139,6 +145,8 @@ output unless the user asks.
 
 ### Step 5 — Defect review (Bugbot)
 
+Run this step in parallel.
+
 Launch exactly one `bugbot` subagent:
 
 - `subagent_type: "bugbot"`
@@ -158,17 +166,22 @@ Same failure/retry rules as Step 4.
 
 ### Step 6 — Acceptance criteria check
 
+Run this step in parallel.
+
 When a task brief exists, verify each criterion against the diff and tests:
 
 | Criterion | Status                               | Evidence                |
 | --------- | ------------------------------------ | ----------------------- |
 | …         | met / partial / missing / untestable | file, test, or gap note |
 
-If no brief was provided, skip with reason: `skipped — no acceptance criteria in context`.
+If no brief was provided — ask the user to provide it via the
+`AskQuestion` tool and wait for the answer.
 
 ---
 
 ### Step 7 — Optional quality gates
+
+Run this step in parallel.
 
 Read the linked skill and run **report-only** phases (never refactor without
 user approval):
