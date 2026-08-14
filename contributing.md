@@ -71,26 +71,6 @@ Create these labels in the GitHub repository if they are missing (`enhancement`,
 
 ---
 
-## Repository setup
-
-### Symlinks
-
-Shared agent settings live once under `.agents/` and are exposed to each agent
-(`.claude/`, `.cursor/`, …) via symlinks. Enable symlink checkout after cloning,
-otherwise they appear as plain text files:
-
-```bash
-git config core.symlinks true   # this clone (or --global for all repos)
-```
-
-Or set it up front when cloning:
-
-```bash
-git clone -c core.symlinks=true <url>
-```
-
----
-
 ## Naming rules
 
 ### Pull request rules

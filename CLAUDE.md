@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Mandatory workflow gate
 
-For **any** change to files in this repo — however trivial (one line, UI-only, config, test, CLI, functions, docs-in-repo) — follow the agent triage flow instead of editing directly: run `requirements-complexity-agent` first, then `spark` (simple) or `octopus` (complex), with `unit-tests-writer` / `e2e-tests-writer` after when tests are classified. The full contract is in `.cursor/skills/implement/SKILL.md`; agent definitions are in `.cursor/agents/`. Skip only for pure Q&A, read-only review, commit-only, or explicit "don't change code" requests.
+**This section decides when to run implement.** For **product and feature
+implementation** — however trivial (one line, UI-only, config, test, CLI,
+functions, product/architecture docs-in-repo) — follow the agent triage flow
+instead of editing directly: run `requirements-complexity-agent` first, then
+`spark` (simple) or `octopus` (complex), with `unituna` / `e2eagle` after when
+tests are classified. The workflow contract is in
+`.cursor/skills/implement/SKILL.md`; agent definitions are in `.cursor/agents/`.
+
+**Do not** use this gate (and do not open the implement skill) for Cursor/AI
+tooling configuration (`.cursor/` skills, agents, rules, hooks, and similar
+agent config) — edit those directly or via their dedicated skill/workflow.
+Skip also for pure Q&A, read-only review, commit-only, or explicit "don't
+change code" requests.
 
 ## Repository layout
 

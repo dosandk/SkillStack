@@ -1,22 +1,23 @@
 ---
 name: implement
 description: >-
-  Mandatory gate for ANY project change. Read and follow this skill before
-  Write/Edit/Delete on repo files whenever the user wants to change, add, fix,
-  update, remove, refactor, configure, style, wire, or improve anything in the
-  codebase — including trivial one-line, one-file, UI-only, config, test, CLI,
-  functions, or docs-in-repo edits. Orchestrates requirements-complexity-agent
-  triage, then spark (simple) or octopus (complex). Never implement product
-  code in the parent without this workflow. Skip ONLY for pure Q&A, read-only
-  review, commit-only, or explicit "do not change code" requests.
+  Mandatory gate for product and feature implementation. Read and follow this
+  skill before Write/Edit/Delete on product source whenever the user wants to
+  develop, change, add, fix, update, remove, refactor, configure, style, wire,
+  or improve project behavior or a feature — including trivial one-line,
+  one-file, UI-only, config, test, CLI, functions, or product/architecture
+  docs-in-repo edits. Orchestrates requirements-complexity-agent triage, then
+  spark (simple) or octopus (complex). Never implement product code in the
+  parent without this workflow. Skip for pure Q&A, read-only review,
+  commit-only, or explicit "do not change code" requests.
 ---
 
 # Implement
 
-**Default workflow for every project change.** If the user's message implies
-that files in this repository should be created or modified, **read this skill
-first** and run the full workflow below — **before** any `Write`, `Edit`, or
-`Delete` on project files.
+**Default workflow for product and feature implementation.** If the user's
+message implies developing or changing project/product behavior or a feature,
+**read this skill first** and run the full workflow below — **before** any
+`Write`, `Edit`, or `Delete` on product source files.
 
 Orchestrate implementation through **mandatory complexity triage** before any
 product code is written. Agent definitions live under `.cursor/agents/`.
@@ -26,16 +27,16 @@ product code is written. Agent definitions live under `.cursor/agents/`.
 | `requirements-complexity-agent` | `.cursor/agents/requirements-complexity-agent.md` | Triage only — returns verdict or clarification request |
 | `spark`                         | `.cursor/agents/spark.md`                         | Simple, local implementation (product code only)       |
 | `octopus`                       | `.cursor/agents/octopus.md`                       | Complex, multi-component implementation (product only) |
-| `unit-tests-writer`             | `.cursor/agents/unit-tests-writer.md`             | Post-executor unit tests when classified               |
-| `e2e-tests-writer`              | `.cursor/agents/e2e-tests-writer.md`              | Post-executor E2E tests when classified                |
+| `unituna`             | `.cursor/agents/unituna.md`             | Post-executor unit tests when classified               |
+| `e2eagle`              | `.cursor/agents/e2eagle.md`              | Post-executor E2E tests when classified                |
 
-## Mandatory gate (run before touching the repo)
+## Mandatory gate (run before touching product source)
 
 On **every** user turn, decide:
 
 ```
-Does this request imply changing anything in the repo?
-├── YES → Read this skill → run Steps 1–7 (no parent Write/Edit/Delete until executor runs)
+Does this request develop or change project/product behavior or a feature?
+├── YES → Read this skill → run Steps 1–8 (no parent Write/Edit/Delete until executor runs)
 └── NO  → Skip this skill (see "Skip only when" below)
 ```
 
@@ -44,31 +45,31 @@ Treat as **YES** even when the user:
 - describes the change indirectly ("make it nicer", "this is broken", "can you handle X?")
 - asks in any language (Ukrainian, English, etc.)
 - says the change is small, quick, trivial, or "just one line / one file / one button"
-- continues a prior task that still needs code changes
-- asks to revert, undo, or roll back prior edits (that is still a repo change)
+- continues a prior task that still needs product code changes
+- asks to revert, undo, or roll back prior product edits (that is still a feature change)
 
 **Never** bypass this skill because the task "looks simple" or "only UI" — triage
 exists precisely for that case.
 
 ## When to use (always)
 
-Use this skill when the user wants **any** of the following anywhere under the
-repo (`client/`, `functions/`, `cli/`, `shared/`, `wiki/`, `.cursor/` agents/skills
-when the user asked to change them, root config that affects the product):
+Use this skill when the user wants **any** of the following in product source
+or feature-related areas (`client/`, `functions/`, `cli/`, `shared/`, `wiki/`,
+`e2e/`, root config that affects the product, product/architecture docs):
 
-| Category | Examples (non-exhaustive) |
-| -------- | ------------------------- |
-| **Create / add** | new component, page, hook, API, schema, CLI command, skill, agent, test file |
-| **Change / update** | edit behavior, copy, layout, styling, props, config, env templates, types |
-| **Fix** | bug, regression, failing test, lint/type error the user wants resolved in code |
-| **Remove / delete** | dead code, feature, file, dependency usage |
-| **Refactor / rename / move** | restructure module, extract helper, rename symbol or path |
-| **Wire / integrate** | connect UI to API, add route, hook up Firebase, import new package usage |
-| **Improve / polish** | "make a nice button", "clean this up", "optimize", "simplify" — if it edits files |
+| Category                     | Examples (non-exhaustive)                                                         |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| **Create / add**             | new component, page, hook, API, schema, CLI command, test file                    |
+| **Change / update**          | edit behavior, copy, layout, styling, props, config, env templates, types         |
+| **Fix**                      | bug, regression, failing test, lint/type error the user wants resolved in code    |
+| **Remove / delete**          | dead code, feature, file, dependency usage                                        |
+| **Refactor / rename / move** | restructure module, extract helper, rename symbol or path                         |
+| **Wire / integrate**         | connect UI to API, add route, hook up Firebase, import new package usage          |
+| **Improve / polish**         | "make a nice button", "clean this up", "optimize", "simplify" — if it edits files |
 
-If you are **unsure** whether the user wants a repo change, **assume YES** and
-either run triage or ask one clarifying question — do **not** start editing files
-while unsure.
+If you are **unsure** whether the user wants a product/feature change, **assume
+YES** and either run triage or ask one clarifying question — do **not** start
+editing product files while unsure.
 
 ## Hard rules
 
@@ -84,15 +85,17 @@ while unsure.
   ask the user (AskQuestion when available), then re-run triage with answers.
 - **Never ask spark or octopus to write or update tests** — do not put
   test-writing instructions in the Step 4 executor prompt. Tests are only
-  Step 6 (`unit-tests-writer` and/or `e2e-tests-writer`, or skip).
+  Step 6 (`unituna` and/or `e2eagle`, or skip).
 - **Parent owns test-type routing** — Step 6 classifies unit / e2e / both /
   none from packages, acceptance criteria, and the diff; then launches zero or
   more test writers.
 - **No git commit / push** unless the user explicitly asked
+- **Parent owns ADR recording** — after product work, the parent may run `update-adr` only after AskQuestion confirmation. Never run
+  `update-adr` without a Yes answer. Never ask spark or octopus to write wiki ADRs.
 
 ### Skip only when (narrow exceptions)
 
-Do **not** use this skill **only** if **all** of the following hold:
+Do **not** use this skill when:
 
 1. The user clearly wants **no** file changes — explain, compare options, or
    read-only investigation only.
@@ -104,8 +107,8 @@ Do **not** use this skill **only** if **all** of the following hold:
    (`spark` / `octopus`) is running or just finished for the **same** task, and
    the user is continuing that work — not starting a new change request.
 
-If the user asks a question **and** wants a fix ("why does X fail? fix it"),
-that is **not** skip — run **implement**.
+If the user asks a question **and** wants a product fix ("why does X fail? fix
+it"), that is **not** skip — run **implement**.
 
 ### Anti-patterns (never do this)
 
@@ -128,8 +131,9 @@ Implement progress:
 - [ ] Step 3: Handle clarification OR parse verdict
 - [ ] Step 4: Launch `spark` or `octopus`
 - [ ] Step 5: Handle executor outcome (done / escalated / down-escalated)
-- [ ] Step 6: Classify needed tests → launch unit-tests-writer and/or e2e-tests-writer (or skip)
+- [ ] Step 6: Classify needed tests → launch unituna and/or e2eagle (or skip)
 - [ ] Step 7: Summarize for the user
+- [ ] Step 8: If ADR candidates → AskQuestion → on Yes, run update-adr in background
 ```
 
 ### Step 1 — Capture task brief
@@ -224,8 +228,8 @@ Full Repository Path: <absolute workspace path>
 
 <goal, acceptance criteria, packages, constraints>
 
-Do not add or update tests — the parent classifies and runs unit-tests-writer
-and/or e2e-tests-writer as needed after you finish.
+Do not add or update tests — the parent classifies and runs unituna
+and/or e2eagle as needed after you finish.
 ```
 
 Wait for the executor to finish. Do not implement in the parent in parallel.
@@ -279,12 +283,12 @@ Do not ask spark or octopus to write tests instead of this step.
 
 #### Launch order
 
-When both are selected, run **sequentially**: `unit-tests-writer` first, then
-`e2e-tests-writer`. Always `run_in_background: false`.
+When both are selected, run **sequentially**: `unituna` first, then
+`e2eagle`. Always `run_in_background: false`.
 
-##### `unit-tests-writer`
+##### `unituna`
 
-- `subagent_type: "unit-tests-writer"`
+- `subagent_type: "unituna"`
 - `description: "Write unit tests"`
 
 ```text
@@ -300,9 +304,9 @@ Follow your agent instructions (git diff scope, existing patterns, validation
 commands). Do not commit.
 ```
 
-##### `e2e-tests-writer`
+##### `e2eagle`
 
-- `subagent_type: "e2e-tests-writer"`
+- `subagent_type: "e2eagle"`
 - `description: "Write e2e tests"`
 
 ```text
@@ -329,10 +333,47 @@ Return a short summary:
 4. **Tests** — `unit | e2e | both | none — <reason>`, plus each writer outcome
    (or "skipped — <reason>")
 5. **Checks** — typecheck/lint/tests run and result
-6. **Follow-ups** — ADR candidate, manual verification, or commit if the user
-   asked
+6. **ADR candidates** — list from octopus (or `<None>` / none from spark); shown
+   before Step 8 AskQuestion when present
+7. **Follow-ups** — manual verification, or commit if the user asked
 
 Do not paste entire agent outputs unless the user asks for details.
+
+### Step 8 — Record ADRs (conditional, last)
+
+Enter when executor status is `done` and the ADR candidates list is non-empty
+(primarily from octopus). Skip when candidates are empty, `<None>`, or when
+blocked/escalated with no candidates.
+
+1. **AskQuestion** with exactly two options, e.g.:
+   - **Yes — write ADR(s) now**
+   - **No — leave as follow-up**
+
+   Include the candidate titles (and one-line whys) in the prompt so the user
+   can decide.
+
+2. **On No** — note ADR recording skipped in the summary; stop.
+
+3. **On Yes** — launch exactly one background Task:
+   - `subagent_type: "generalPurpose"`
+   - `run_in_background: true`
+   - `description: "Write ADR(s)"`
+
+   Prompt shape:
+
+   ```text
+   Read and follow `.cursor/skills/update-adr/SKILL.md`.
+
+   ## ADR candidates
+
+   <paste the candidate list from octopus — title + one-line why per item>
+
+   Write one ADR per decision. Do not invent scope beyond the payload above.
+   Do not commit.
+   ```
+
+4. **After launch** — do not await the background task; rely on the end-of-turn
+   completion notification. Mark Step 8 complete once the task is launched.
 
 ---
 
@@ -371,7 +412,7 @@ new triage prompt.
 1. User: "Add parseShareToken helper in shared/"
 2. Triage → `Verdict: simple`, `Executor: spark`
 3. Spark implements parser (no tests)
-4. Parent classifies → **tests: unit** → `unit-tests-writer`
+4. Parent classifies → **tests: unit** → `unituna`
 5. Summary: helper + unit coverage
 
 ### Catalog empty-state UI (expected path)
@@ -388,8 +429,20 @@ new triage prompt.
 1. User: "Add install tracking endpoint and show count in the UI"
 2. Triage → `Verdict: complex`, `Executor: octopus`
 3. Octopus: consistency brief → todos → functions + client (product only)
-4. Parent classifies → **tests: both** → `unit-tests-writer` then `e2e-tests-writer`
+4. Parent classifies → **tests: both** → `unituna` then `e2eagle`
 5. Summary: packages touched, both writer outcomes, emulator note if relevant
+
+### Complex feature with ADR candidates (expected path)
+
+1. User: "Refactor auth to use a new session store"
+2. Triage → `Verdict: complex`, `Executor: octopus`
+3. Octopus implements; returns ADR candidates, e.g.:
+   - `Session store in Firestore subcollection: keeps auth state colocated with user profile`
+4. Parent classifies tests → launches writers as needed
+5. Step 7 summary includes ADR candidates
+6. Step 8 AskQuestion: "Write ADR(s) now?" with candidate titles
+7. On Yes → background `generalPurpose` task reads `update-adr/SKILL.md` and
+   writes ADR(s); parent does not await
 
 ### Ambiguous request
 
@@ -404,7 +457,7 @@ new triage prompt.
 
 Before marking implement complete:
 
-- [ ] Mandatory gate applied — request was classified as a repo change before any edit
+- [ ] Mandatory gate applied — request was classified as a product/feature change before any edit
 - [ ] Triage ran before any product code
 - [ ] Executor matched verdict (`spark` / `octopus`)
 - [ ] Executor was not asked to write or update tests
@@ -412,4 +465,7 @@ Before marking implement complete:
 - [ ] Step 6 classification recorded (`unit | e2e | both | none`) with a reason
 - [ ] Selected test writers ran (or skip was justified)
 - [ ] User got a concise summary with outcome, key paths, and test routing result
+- [ ] ADR candidates from octopus included in Step 7 summary when present
+- [ ] Step 8: AskQuestion ran when candidates non-empty; update-adr launched in
+      background only on Yes (or skip justified)
 - [ ] No commit unless explicitly requested

@@ -35,6 +35,7 @@ Do not:
   update todos, and report the expansion in the result;
 - perform drive-by refactors outside the scope sketch;
 - invent requirements the parent did not state;
+- write ADRs — list ADR candidates only; the parent owns recording after product work;
 
 ## When invoked — mandatory workflow
 
@@ -49,7 +50,7 @@ steps.
    2. Backend services and gateway-facing handlers
    3. Shared API client updates
    4. Client / CLI consumers
-   5. Docs / ADR note if an architectural decision was made
+   5. Note ADR candidates (list only)
 
    Do not start Write/Edit until the todo list exists.
 
@@ -60,9 +61,10 @@ steps.
    TodoWrite items `in_progress` → `completed` as you go.
 
 5. Run validation (check Validation section)
-6. **Record architectural decisions.** If you chose among non-obvious options (layering,
-   new pattern, AD interpretation, contract shape, migration approach), add an ADR
-   candidate section: decision, context, alternatives considered, consequences.
+6. **Note ADR candidates (list only).** If you chose among non-obvious options
+   (layering, new pattern, AD interpretation, contract shape, migration approach),
+   list each as a short item: `<title>: <one-line decision + why>`. Do **not** write
+   ADRs — the parent owns recording after product work.
 7. **Return the result. Stop.**
 
 ## Communication with user
@@ -143,14 +145,10 @@ What changed: <behavior deltas, not a file dump>
 
 ADR candidates
 
-Use skill "update-adr" to add extra ADR to the project wiki
-
 <None>
 — or —
-**Decision:** <title>
-**Context:** <why a choice was needed>
-**Options considered:** <A / B>
-**Choice + consequences:** <what and why>
+- <title>: <one-line decision + why>
+- <title>: <one-line decision + why>
 
 Blockers / left unfinished
 
@@ -168,7 +166,8 @@ Octopus execution is complete when one of these outcomes is reached:
    - acceptance criteria are satisfied;
    - relevant checks pass;
    - no unrelated changes were made.
-   - non-obvious architecture choices are listed under ADR candidates.
+   - non-obvious architecture choices are listed under ADR candidates (octopus
+     never writes ADRs).
 
 2. **escalated**
    - the parent has concrete questions / AD conflicts to resolve;
