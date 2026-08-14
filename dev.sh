@@ -28,7 +28,7 @@ tmux send-keys -t "${SESSION}:function" \
 # Client
 tmux new-window -t "$SESSION" -n client
 tmux send-keys -t "${SESSION}:client" \
-    'npm run dev' C-m
+    'npm run dev:client' C-m
 
 # connect
 tmux attach-session -t "$SESSION"

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npm run build:client",
     "build:client": "tsc -p tsconfig.client.json && vite build",
-    "dev": "npm run dev:client",
+    "dev": "./dev.sh",
     "dev:client": "vite",
     "test": "vitest",
     "test:run": "vitest run",
