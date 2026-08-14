@@ -36,7 +36,7 @@ Review progress:
 - [ ] Step 3: Coverage review (run in parallel)
 - [ ] Step 4: Security review (run in parallel)
 - [ ] Step 5: Defect review (Bugbot) (run in parallel)
-- [ ] Step 6: Acceptance criteria check (run in parallel)
+- [ ] Step 6: Acceptance criteria & scope check (run in parallel)
 - [ ] Step 7: Optional quality gates (as classified) (run in parallel)
 - [ ] Step 8: Unified report
 
@@ -65,7 +65,8 @@ Always run Steps 3–6. Run Step 7 checks only when the trigger column applies:
 | Coverage             | 3    | Product code changed in testable packages                               |
 | Security             | 4    | Any product or config change                                            |
 | Defects (Bugbot)     | 5    | Any product code change                                                 |
-| Acceptance criteria  | 6    | Task brief or acceptance criteria available                             |
+| Acceptance criteria  | 6a   | Task brief or acceptance criteria available                             |
+| Scope alignment      | 6b   | Any non-empty diff (task intent derivable from brief or conversation)   |
 | Complexity           | 7    | `.ts`/`.tsx`/`.js`/`.jsx` changed in `client/`, `functions/`, or `cli/` |
 | Duplicates           | 7    | 3+ source files changed, or new shared logic / handlers / schemas       |
 | NPM vulnerabilities  | 7    | `package.json` or lockfile changed in any package                       |
@@ -94,25 +95,30 @@ For each changed source file (exclude tests, configs, types-only re-exports):
    - If **e2e** was expected but no Playwright spec covers the journey → gap.
    - If **none** was chosen, confirm the change truly has no testable contract.
 
-#### 3b — Run coverage (when practical)
+#### 3b — Run coverage metrics (when practical)
 
-Run coverage only for packages with changed testable source:
+Follow **`.cursor/skills/check-coverage/SKILL.md`** for commands, JSON parsing,
+branch-first module summary, and threshold verdict (Pass / At risk / Fail).
 
-| Package       | Command (from package dir or repo root per project scripts) |
-| ------------- | ----------------------------------------------------------- |
-| client/shared | `npm run test:coverage` (repo root vitest projects)         |
-| functions     | `cd functions && npm run test:coverage`                     |
-| cli           | `cd cli && npm run test:run` (coverage if script exists)    |
+Run only packages with changed testable source:
 
-Focus the report on **changed files**, not whole-repo totals.
+| Package       | Preferred command                       |
+| ------------- | --------------------------------------- |
+| client/shared | `npm run test:coverage` (repo root)     |
+| functions     | `cd functions && npm run test:coverage` |
+| cli           | `cd cli && npm run test:coverage`       |
 
-#### 3c — Coverage verdict
+Focus metrics on **changed files** when diff scope is known; still cite module-level branch %.
 
-Assign one overall label:
+#### 3c — Coverage verdict (qualitative + metrics)
 
-- **Strong** — meaningful behaviors covered; gaps are trivial or justified.
-- **Normal** — core paths covered; minor gaps listed.
-- **Weak** — important behavior untested; list each gap with file and suggested test type (`unit` / `e2e` / `integration`).
+Combine check-coverage metrics with the behavior map from 3a. Assign one overall label:
+
+- **Strong** — check-coverage Pass (or At risk with only trivial gaps); meaningful behaviors covered.
+- **Normal** — check-coverage Pass or At risk; core paths covered; minor gaps listed.
+- **Weak** — check-coverage Fail, material branch gaps in changed files, or important behavior untested; list each gap with file and suggested test type (`unit` / `e2e` / `integration`).
+
+When the user asks only for percentages or threshold status, run **check-coverage** alone instead of duplicating commands here.
 
 ---
 
@@ -164,9 +170,14 @@ Same failure/retry rules as Step 4.
 
 ---
 
-### Step 6 — Acceptance criteria check
+### Step 6 — Acceptance criteria & scope check
 
 Run this step in parallel.
+
+Two complementary directions: **6a** confirms the task's intended behavior is
+present (forward map); **6b** confirms nothing _extra_ rode along (reverse map).
+
+#### 6a — Criteria coverage (forward map)
 
 When a task brief exists, verify each criterion against the diff and tests:
 
@@ -174,8 +185,34 @@ When a task brief exists, verify each criterion against the diff and tests:
 | --------- | ------------------------------------ | ----------------------- |
 | …         | met / partial / missing / untestable | file, test, or gap note |
 
-If no brief was provided — ask the user to provide it via the
-`AskQuestion` tool and wait for the answer.
+#### 6b — Scope alignment (reverse map)
+
+Map every changed **file** (and any notable hunk inside an otherwise-relevant
+file) back to the task. Flag anything that does not trace to a criterion, the
+stated goal, or an allowed package. This is the independent counterpart to the
+executors' own `no unrelated changes were made` self-check — verify it, don't
+trust it. Categorize each finding:
+
+- **Unrelated file** — a changed/added/deleted file with no link to the task.
+- **Out-of-scope hunk** — an in-scope file that also carries edits unrelated to
+  the task: **drive-by refactor** outside the scope sketch, formatting churn,
+  stray `console.log` / commented-out code, unrelated dependency bumps.
+- **Scope creep / constraint breach** — related area but beyond the acceptance
+  criteria, or touching something a Step-1 **Constraint** explicitly ruled out.
+
+| Change     | Relation to task                       | Verdict                             | Recommendation                  |
+| ---------- | -------------------------------------- | ----------------------------------- | ------------------------------- |
+| path:LX-LY | none / criterion N / constraint breach | in scope / out of scope / uncertain | keep / split / revert / confirm |
+
+Record every `out of scope` change; `uncertain` means the relation could not be
+determined from available context — surface it for the user to confirm.
+
+#### Intent source
+
+Both sub-checks need the task intent. Derive it from the task brief **or** clear
+conversation / implement context. Only when intent is genuinely unknown, ask the
+user to provide it via the `AskQuestion` tool and wait for the answer — do not
+block the scope pass on a formal brief when intent is otherwise clear.
 
 ---
 
@@ -227,6 +264,13 @@ Return this structure to the user:
 | Criterion | Status | Notes |
 | … | … | … |
 
+### Scope alignment — <all changes in scope | N out-of-scope>
+
+| Change | Verdict | Recommendation |
+| … | … | … |
+
+<omit the table when all changes are in scope; state "all changes in scope">
+
 ### Optional checks
 
 - Complexity: <summary or skipped>
@@ -241,6 +285,10 @@ Return this structure to the user:
 
 Sort finding tables by severity (highest first). Merge duplicate findings across
 dimensions when the same root cause appears in security and Bugbot.
+
+Unexplained **out of scope** changes push **Overall** toward **needs work** — call
+them out even when every other dimension is clean, since they usually belong in a
+separate change.
 
 ---
 

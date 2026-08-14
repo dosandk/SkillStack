@@ -2,9 +2,9 @@
 name: check-coverage
 description: >-
   Runs coverage for the project, parses branch-first metrics per module,
-  compares against repo thresholds, and recommends targeted tests. 
-  Use when the user asks to check coverage, test
-  coverage gaps, or whether coverage thresholds pass.
+  compares against repo thresholds, and recommends targeted tests.
+  Use when the user asks to check coverage, test coverage gaps, or whether
+  coverage thresholds pass.
 ---
 
 # Check Coverage
@@ -18,12 +18,14 @@ Copy this checklist to track progress. Show step completion in the main output.
 
 ```
 Coverage check progress:
+- [ ] Step 0: Load thresholds
 - [ ] Step 1: Resolve scope
 - [ ] Step 2: Run coverage commands (per module)
-- [ ] Step 3: Parse output (summary + per-file + edge cases)
+- [ ] Step 3: Parse output (JSON preferred, text for uncovered lines)
 - [ ] Step 4: Branch-first analysis
 - [ ] Step 5: Draft recommendations
 - [ ] Step 6: Publish report + overall verdict
+- [ ] Step 7: Optional handoff (when user wants fixes)
 ```
 
 ## Hard rules
@@ -33,10 +35,20 @@ Coverage check progress:
 - **Per-module reports** — never merge cli/functions into the root vitest run; each package has its own config.
 - **Use actual command output** — do not guess percentages; run the commands below.
 
-## Repo thresholds
+---
 
-Defined in root `vitest.config.ts` (apply to **all** packages unless a package config overrides):
-When a metric is within **2 percentage points** of its minimum, mark the module **At risk**.
+## Step 0 — Thresholds (canonical)
+
+Check configs for thresholds definitions:
+
+| Module name | Config path                        |
+| ----------- | ---------------------------------- |
+| client      | `./vitest.config.ts` (at the root) |
+| shared      | `./vitest.config.ts` (at the root) |
+| functions   | `./functions/vitest.config.js`     |
+| cli         | `./cli/vitest.config.ts`           |
+
+**At risk** — any metric is within 5 percentage points of its minimum.
 
 ---
 
@@ -44,12 +56,21 @@ When a metric is within **2 percentage points** of its minimum, mark the module 
 
 Resolve scope in this priority order:
 
-1. User names a module (`client`, `shared`, `functions`, `cli`) — run only that module's command(s).
-2. User names changed files / diff — run all modules, but **focus recommendations on changed source files**
-   (exclude `*.spec.*`, configs, type-only re-exports).
+1. User names a module (`client`, `shared`, `functions`, `cli`) — run only that module.
+2. User names changed files / diff — run affected modules; **focus recommendations on changed source files**
+   (exclude `*.spec.*`, `*.e2e.ts`, `*.i.spec.ts`, configs, type-only re-exports).
 3. Otherwise — run **all four modules** (full project audit).
 
 State the resolved scope in one line before running commands.
+
+### Diff scope (when user says "my changes" / PR / branch)
+
+| Diff mode                 | Git commands                                                                  |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| **uncommitted** (default) | `git diff --name-only HEAD` and `git diff --cached --name-only`               |
+| **branch / PR**           | `git diff --name-only develop...HEAD` (use merge-base base branch when known) |
+
+Map changed paths to modules, then run only the affected module commands.
 
 ---
 
@@ -109,12 +130,26 @@ Map paths to modules:
 
 ### 3c — Handle edge cases
 
-| Situation                                     | Interpretation                                                                                                          |
-| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `Unknown% ( 0/0 )` for all metrics            | No instrumented files — flag **No coverage data**; recommend adding `coverage.include` in that package's vitest config. |
-| Summary passes but file rows show branch gaps | Module **At risk** — line coverage can hide untested branches.                                                          |
-| Vitest exits 1 on thresholds                  | Report which metric failed; branch failure is highest priority.                                                         |
-| Truncated filenames                           | Match by suffix (e.g. `...ry-filters.ts` → search module tree) before recommending tests.                               |
+| Situation                                     | Interpretation                                                                                                   |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `Unknown% ( 0/0 )` or missing JSON summary    | **No coverage data** — check tests exist, source is imported, `@vitest/coverage-v8` is installed in the package. |
+| Summary passes but file rows show branch gaps | Expected when module total passes; apply file-level rules in Phase 4.                                            |
+| Vitest exits 1 on thresholds                  | Report which metric failed; branch failure is highest priority.                                                  |
+| One module fails in parallel run              | Still report other modules; overall verdict = worst module.                                                      |
+
+---
+
+## Coverage blind spots
+
+Unit Vitest coverage does **not** measure everything:
+
+| Layer                        | Outside unit coverage                    | Recommend instead                         |
+| ---------------------------- | ---------------------------------------- | ----------------------------------------- |
+| `functions/` Firestore store | `*.i.spec.ts` excluded from unit config  | `functions/src/**/*.i.spec.ts` + emulator |
+| `client/` full UI journeys   | Playwright `e2e/*.e2e.ts`                | `create-e2e-tests` → `e2eagle`            |
+| HTTP handler status mapping  | May need handler + domain tests together | colocated `*.spec.ts` in `functions/src/` |
+
+When a gap is in store/repository code, prefer integration tests over mocking Firestore in unit specs.
 
 ---
 
@@ -139,8 +174,10 @@ Cross-module ranking: sort all sub-threshold **files** by branch % globally when
 
 For each branch gap (or at-risk file), suggest **concrete** next steps:
 
-- **Test type**: colocated `*.spec.ts` / `*.spec.tsx` (preferred),
-  `*.i.spec.ts` for Firestore integration in `functions/`, Playwright `*.e2e.ts` only for full UI journeys.
+- **Test type routing**:
+  - domain logic, parsers, hooks, handlers → colocated `*.spec.ts` / `*.spec.tsx`
+  - Firestore store / repository persistence → `*.i.spec.ts` under `functions/`
+  - multi-step UI journeys, auth gates, routing → Playwright `*.e2e.ts`
 - **Behavior to assert**: name the untested branch (e.g. "empty filter array", "invalid query param", "store returns null").
 - **File to extend or create**: mirror source path (`foo.ts` → `foo.spec.ts` beside it).
 - **Do not** recommend testing Zod schemas in isolation — test through the function that consumes the schema (repo convention).
@@ -149,8 +186,8 @@ Prioritize recommendations:
 
 1. Module failing branch threshold
 2. Module at risk on branch
-3. Files in scope (diff) with lowest branch %
-4. Remaining sub-threshold files
+3. Material gaps in diff scope
+4. Remaining listed sub-threshold files
 
 ---
 
@@ -188,10 +225,22 @@ Use this template:
 
 ### Verdict rules
 
-- **Fail** — any in-scope module below branch threshold
-- **At risk** — all modules less branch threshold within 5% of a threshold
-- **Pass** — all modules meet thresholds; no material branch gaps in scope.
-- **No coverage data** for a module counts as **Fail** for full audits; note it explicitly for scoped cli-only runs.
+- **Fail** — any in-scope module with branch < threshold, Vitest threshold exit 1, or **No coverage data** on a full audit
+- **At risk** — at least one module or metric is within 5 percent less of its minimum
+- **Pass** — all in-scope modules meet all thresholds; no material branch gaps in scope
+- **No coverage data** for a scoped single-module run — report explicitly; do not infer Pass
+
+---
+
+## Phase 7 — Optional handoff
+
+When the user wants to **fix** gaps (not just audit):
+
+- Unit / domain gaps → suggest **`create-unit-tests`** skill (delegates to `unituna`)
+- UI journey gaps → suggest **`create-e2e-tests`** skill (delegates to `e2eagle`)
+- Firestore integration gaps → note `npm run test:integration` in `functions/`; do not write tests in this skill
+
+Do not launch test writers unless the user asks to implement fixes.
 
 ---
 

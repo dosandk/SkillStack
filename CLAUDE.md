@@ -63,7 +63,6 @@ npm run test:run     # vitest run — 'shared' project (node) + 'client' project
 npm run test:coverage
 npm run emulators    # firebase emulators:start (auth:9099, functions:5001, firestore:8080, UI on)
 npm run test:e2e     # build functions, then run Playwright under auth+functions+firestore emulators
-npm run sync-rules   # scripts/sync-rules.sh
 ```
 
 Run a single unit test: `npx vitest run path/to/file.spec.ts` or `npx vitest run -t "test name"`.

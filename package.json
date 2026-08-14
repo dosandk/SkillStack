@@ -23,8 +23,7 @@
     "test:e2e:headed": "npm --prefix functions run build && firebase emulators:exec --only auth,functions,firestore \"playwright test --headed\"",
     "test:e2e:ci": "npm run test:e2e",
     "typecheck": "tsc -p tsconfig.client.json",
-    "preview": "vite preview",
-    "sync-rules": "scripts/sync-rules.sh"
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
