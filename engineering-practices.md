@@ -81,7 +81,7 @@ note:
 - AI integration:
   - rule
   - "AGENT.md" or "CLAUDE.md"
-  - part of "implement-task" skill
+  - skill: create-branch
 - Process: git
 - Classical tools: "contribution.md"
 - Verification process: git hook, CI/CD, code review

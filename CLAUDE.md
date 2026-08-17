@@ -2,22 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Mandatory workflow gate
-
-**This section decides when to run implement.** For **product and feature
-implementation** — however trivial (one line, UI-only, config, test, CLI,
-functions, product/architecture docs-in-repo) — follow the agent triage flow
-instead of editing directly: run `requirements-complexity-agent` first, then
-`spark` (simple) or `octopus` (complex), with `unituna` / `e2eagle` after when
-tests are classified. The workflow contract is in
-`.cursor/skills/implement/SKILL.md`; agent definitions are in `.cursor/agents/`.
-
-**Do not** use this gate (and do not open the implement skill) for Cursor/AI
-tooling configuration (`.cursor/` skills, agents, rules, hooks, and similar
-agent config) — edit those directly or via their dedicated skill/workflow.
-Skip also for pure Q&A, read-only review, commit-only, or explicit "don't
-change code" requests.
-
 ## Repository layout
 
 Single repo, multiple independently-installed packages (NOT npm workspaces — `client` deps live in the root `package.json`; `functions/` and `cli/` each have their own `package.json` / `node_modules`). Node 24 (`.nvmrc` pins v24.3.0). Base TS options and cross-folder path aliases are centralized in `tsconfig.base.json` and mirrored in `vite.config.ts` / `vitest.config.ts`.
