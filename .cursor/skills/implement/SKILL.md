@@ -70,9 +70,9 @@ or feature-related areas (`client/`, `functions/`, `cli/`, `shared/`, `wiki/`,
 | **Wire / integrate**         | connect UI to API, add route, hook up Firebase, import new package usage          |
 | **Improve / polish**         | "make a nice button", "clean this up", "optimize", "simplify" — if it edits files |
 
-If you are **unsure** whether the user wants a product/feature change, **assume
-YES** and either run triage or ask one clarifying question — do **not** start
-editing product files while unsure.
+If you are **unsure** whether the request is a product/feature change, ask **one**
+clarifying question. Do **not** run this workflow and do **not** edit files until
+the user confirms it is a product change.
 
 ## Hard rules
 
@@ -109,6 +109,9 @@ Do **not** use this skill when:
 3. **Or** implement is **already mid-flight**: triage completed, executor
    (`spark` / `octopus`) is running or just finished for the **same** task, and
    the user is continuing that work — not starting a new change request.
+4. **Or** the request only adds or edits agent config — skills, rules, or
+   subagents under `.cursor/` / `.agents/` — with no product-source change. Use
+   `create-skill` / `create-rule` (or edit those files directly).
 
 If the user asks a question **and** wants a product fix ("why does X fail? fix
 it"), that is **not** skip — run **implement**.
