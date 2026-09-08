@@ -30,8 +30,8 @@ product code is written. Agent definitions live under `.cursor/agents/`.
 | `requirements-complexity-agent` | `.cursor/agents/requirements-complexity-agent.md` | Triage only — returns verdict or clarification request |
 | `spark`                         | `.cursor/agents/spark.md`                         | Simple, local implementation (product code only)       |
 | `octopus`                       | `.cursor/agents/octopus.md`                       | Complex, multi-component implementation (product only) |
-| `unituna`             | `.cursor/agents/unituna.md`             | Post-executor unit tests when classified               |
-| `e2eagle`              | `.cursor/agents/e2eagle.md`              | Post-executor E2E tests when classified                |
+| `unituna`                       | `.cursor/agents/unituna.md`                       | Post-executor unit tests when classified               |
+| `e2eagle`                       | `.cursor/agents/e2eagle.md`                       | Post-executor E2E tests when classified                |
 
 ## Mandatory gate (run before touching product source)
 
@@ -81,11 +81,13 @@ the user confirms it is a product change.
 - **Never write product code** (Write/Edit on source) until triage completes and
   the chosen executor (`spark` or `octopus`) is running.
 - **Never skip triage** — even for one-file or one-button changes.
-- **Never launch spark or octopus** without a completed complexity verdict (or
-  explicit re-triage after escalation).
+- **Never launch spark or octopus** without a completed complexity verdict.
+  After `escalated`, relaunch spark or octopus only if the user picks that
+  in Step 5 AskQuestion.
 - **One executor at a time** — do not run spark and octopus in parallel.
 - **Clarification is the parent's job** — if triage returns `NEEDS_CLARIFICATION`,
-  ask the user (AskQuestion when available), then re-run triage with answers.
+  ask the user (AskQuestion when available), then re-run Step 2 with answers.
+  **`NEEDS_CLARIFICATION` may appear at most 3 times**. On the 3rd appearance, do not AskQuestion and do not launch an executor — go to Step 7.
 - **Never ask spark or octopus to write or update tests** — do not put
   test-writing instructions in the Step 4 executor prompt. Tests are only
   Step 6 (`unituna` and/or `e2eagle`, or skip).
@@ -191,12 +193,17 @@ Triage returns **exactly one** of:
 
 #### A) `NEEDS_CLARIFICATION`
 
-1. Present the agent's questions to the user (AskQuestion with 2–4 options per
-   question when possible; max 3 questions).
-2. Collect answers.
-3. Re-run Step 2 with a `CLARIFICATION_ANSWERS` block — do not re-ask answered
+Count **each** Step 2 result that is `NEEDS_CLARIFICATION`. **At most 3 appearances.**
+
+1. If this is the **3rd** `NEEDS_CLARIFICATION` — do not AskQuestion; skip
+   Steps 4–6 and 8; go to Step 7 (blocked: still questions after 3
+   `NEEDS_CLARIFICATION` results).
+2. Otherwise (1st or 2nd appearance) present the agent's questions (AskQuestion
+   with 2–4 options per question when possible; max 3 questions).
+3. Collect answers. If the user declines, skip Steps 4–6 and 8; go to Step 7
+   without implementing.
+4. Re-run Step 2 with a `CLARIFICATION_ANSWERS` block — do not re-ask answered
    questions.
-4. Repeat until verdict or user declines (then stop without implementing).
 
 #### B) Complexity verdict
 
@@ -245,24 +252,14 @@ Wait for the executor to finish. Do not implement in the parent in parallel.
 
 ### Step 5 — Handle executor outcome
 
-#### Spark result
+| Status      | Parent action                                         |
+| ----------- | ----------------------------------------------------- |
+| `done`      | Proceed to Step 6                                     |
+| `escalated` | AskQuestion; Relauch spark/octopus after user answers |
 
-| Status      | Parent action             |
-| ----------- | ------------------------- |
-| `done`      | Proceed to Step 6         |
-| `escalated` | Re-run Step 2 (re-triage) |
+Never silently ignore escalation.
 
-Prefer re-triage when the escalation changes scope materially; prefer octopus when
-spark already identified a clearly complex remainder.
-
-#### Octopus result
-
-| Status      | Parent action             |
-| ----------- | ------------------------- |
-| `done`      | Proceed to Step 6         |
-| `escalated` | Re-run Step 2 (re-triage) |
-
-Never silently ignore escalation
+AskQuestion: 2–4 options from the escalation payload.
 
 ### Step 6 — Classify and run test writers
 
@@ -301,6 +298,7 @@ Ask only when tests would actually run. Mirror the ADR gate in Step 8.
    - **No — skip tests**
 
    Include the classified type and one-line reason in the prompt.
+
 3. **On No** — do not launch writers; record `skipped — user declined` for Step 7.
 4. **On Yes** — launch writers in the order below.
 
@@ -349,7 +347,8 @@ in-repo, validation commands — npm run test:e2e). Do not commit.
 
 Return a short summary:
 
-1. **Triage** — verdict (`simple` / `complex`) in one line
+1. **Triage** — verdict (`simple` / `complex`) in one line, or no verdict when
+   blocked after 3 `NEEDS_CLARIFICATION` results
 2. **Outcome** — done / escalated / blocked + what changed
 3. **Files touched** — key paths from executor and any test writers (not a raw
    dump unless small)
@@ -404,12 +403,12 @@ blocked/escalated with no candidates.
 
 Re-run `requirements-complexity-agent` when:
 
-- Spark escalates mid-flight
-- Scope grows beyond the original verdict's scope sketch
+- Pre-implementation clarification (Step 3 A), until a verdict, while
+  `NEEDS_CLARIFICATION` has appeared **fewer than 3 times**
 - The user changes requirements materially mid-task
 
-Include prior verdict, executor result, and what broke the assumption in the
-new triage prompt.
+Do **not** treat spark/octopus `escalated` as a reason to run Step 2 again —
+that is Step 5 AskQuestion (relaunch spark/octopus or stop).
 
 ---
 
@@ -474,8 +473,11 @@ new triage prompt.
 
 1. User: "Make repositories better"
 2. Triage → `NEEDS_CLARIFICATION` with 2–3 concrete options
-3. Parent asks user → re-triage with `CLARIFICATION_ANSWERS`
-4. Then route to spark or octopus per new verdict
+3. Parent asks user → Step 2 with `CLARIFICATION_ANSWERS` (`NEEDS_CLARIFICATION`
+   1 of 3 already used)
+4. AskQuestion → Step 2 again only while `NEEDS_CLARIFICATION` has appeared
+   fewer than 3 times; then route to spark or octopus on a verdict. On the 3rd
+   `NEEDS_CLARIFICATION` → Step 7 (blocked, no executor)
 
 ---
 
@@ -487,7 +489,10 @@ Before marking implement complete:
 - [ ] Triage ran before any product code
 - [ ] Executor matched verdict (`spark` / `octopus`)
 - [ ] Executor was not asked to write or update tests
-- [ ] Escalation or down-escalation handled explicitly if it occurred
+- [ ] `NEEDS_CLARIFICATION` appeared at most 3 times; leftover questions went
+      to Step 7 without an executor
+- [ ] Executor `escalated` → AskQuestion ran; spark/octopus relaunched only
+      if the user chose that
 - [ ] Step 6 classification recorded (`unit | e2e | both | none`) with a reason
 - [ ] If classification was not `none`: AskQuestion ran; writers launched only on Yes
 - [ ] Selected test writers ran (or skip was justified)
