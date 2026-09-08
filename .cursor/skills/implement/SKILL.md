@@ -90,8 +90,9 @@ the user confirms it is a product change.
   test-writing instructions in the Step 4 executor prompt. Tests are only
   Step 6 (`unituna` and/or `e2eagle`, or skip).
 - **Parent owns test-type routing** — Step 6 classifies unit / e2e / both /
-  none from packages, acceptance criteria, and the diff; then launches zero or
-  more test writers.
+  none from packages, acceptance criteria, and the diff. If the result is not
+  `none`, AskQuestion (yes/no) before launching writers. Never launch
+  `unituna` / `e2eagle` without a Yes.
 - **No git commit / push** unless the user explicitly asked
 - **Parent owns ADR recording** — after product work, the parent may run `update-adr` only after AskQuestion confirmation. Never run
   `update-adr` without a Yes answer. Never ask spark or octopus to write wiki ADRs.
@@ -137,7 +138,7 @@ Implement progress:
 - [ ] Step 3: Handle clarification OR parse verdict
 - [ ] Step 4: Launch `spark` or `octopus`
 - [ ] Step 5: Handle executor outcome (done / escalated / down-escalated)
-- [ ] Step 6: Classify needed tests → launch unituna and/or e2eagle (or skip)
+- [ ] Step 6: Classify tests → if not none, AskQuestion → on Yes, launch writers (or skip)
 - [ ] Step 7: Summarize for the user
 - [ ] Step 8: If ADR candidates → AskQuestion → on Yes, run update-adr in background
 ```
@@ -236,8 +237,8 @@ Full Repository Path: <absolute workspace path>
 
 <goal, acceptance criteria, packages, constraints>
 
-Do not add or update tests — the parent classifies and runs unituna
-and/or e2eagle as needed after you finish.
+Do not add or update tests — the parent classifies, asks the user
+when tests are needed, then may run unituna and/or e2eagle after you finish.
 ```
 
 Wait for the executor to finish. Do not implement in the parent in parallel.
@@ -266,8 +267,8 @@ Never silently ignore escalation
 ### Step 6 — Classify and run test writers
 
 After a successful executor `done` with product-code changes, **classify** which
-tests are needed, then launch zero or more writers. Do not always run unit
-tests — simple requests may need none.
+tests are needed. Do not always run unit tests — simple requests may need none.
+When classification is not `none`, ask the user before launching writers.
 
 #### Classification
 
@@ -281,6 +282,7 @@ Decide from packages touched, acceptance criteria, and the diff:
 | **both**       | Both kinds of risk are present (common for API + UI features)                                                                                                                                                 |
 
 Record the choice for Step 7: `tests: unit | e2e | both | none — <one-line reason>`.
+If the user declined writers, also record `skipped — user declined`.
 
 Skip launching any writer when classification is **none**, or when:
 
@@ -288,6 +290,19 @@ Skip launching any writer when classification is **none**, or when:
 - escalated / down-escalated with **no** product changes worth covering
 
 Do not ask spark or octopus to write tests instead of this step.
+
+#### User confirmation
+
+Ask only when tests would actually run. Mirror the ADR gate in Step 8.
+
+1. If classification is `none` (or already skipped) — do not ask; proceed to Step 7.
+2. If `unit` / `e2e` / `both` — **AskQuestion** with exactly two options, e.g.:
+   - **Yes — write tests now**
+   - **No — skip tests**
+
+   Include the classified type and one-line reason in the prompt.
+3. **On No** — do not launch writers; record `skipped — user declined` for Step 7.
+4. **On Yes** — launch writers in the order below.
 
 #### Launch order
 
@@ -339,7 +354,7 @@ Return a short summary:
 3. **Files touched** — key paths from executor and any test writers (not a raw
    dump unless small)
 4. **Tests** — `unit | e2e | both | none — <reason>`, plus each writer outcome
-   (or "skipped — <reason>")
+   (or "skipped — user declined" / "skipped — <reason>")
 5. **Checks** — typecheck/lint/tests run and result
 6. **ADR candidates** — list from octopus (or `<None>` / none from spark); shown
    before Step 8 AskQuestion when present
@@ -406,7 +421,8 @@ new triage prompt.
 2. Parent reads **implement** first — no direct edits
 3. Triage → `Verdict: simple`, `Executor: spark`
 4. Spark implements in `client/` using ELEKS UI patterns (no tests)
-5. Parent classifies → **tests: none** (trivial wiring / no branching contract)
+5. Parent classifies → **tests: none** (trivial wiring / no branching contract);
+   do not AskQuestion
 6. Summary: one component + App wiring; no test writers launched
 
 ### Wrong path (do not repeat)
@@ -420,8 +436,8 @@ new triage prompt.
 1. User: "Add parseShareToken helper in shared/"
 2. Triage → `Verdict: simple`, `Executor: spark`
 3. Spark implements parser (no tests)
-4. Parent classifies → **tests: unit** → `unituna`
-5. Summary: helper + unit coverage
+4. Parent classifies → **tests: unit** → AskQuestion → on Yes, `unituna`
+5. Summary: helper + unit coverage (or skipped if user declined)
 
 ### Catalog empty-state UI (expected path)
 
@@ -429,16 +445,18 @@ new triage prompt.
 2. Triage → `Verdict: simple` or `complex` per scope
 3. Executor implements UI (no tests)
 4. Parent classifies → **tests: e2e** (and **unit** if logic was extracted) →
-   launch matching writers
-5. Summary: UI change + E2E journey coverage
+   AskQuestion → on Yes, launch matching writers
+5. Summary: UI change + E2E journey coverage (or skipped if user declined)
 
 ### New API + client feature (expected path)
 
 1. User: "Add install tracking endpoint and show count in the UI"
 2. Triage → `Verdict: complex`, `Executor: octopus`
 3. Octopus: consistency brief → todos → functions + client (product only)
-4. Parent classifies → **tests: both** → `unituna` then `e2eagle`
-5. Summary: packages touched, both writer outcomes, emulator note if relevant
+4. Parent classifies → **tests: both** → AskQuestion → on Yes, `unituna` then
+   `e2eagle`
+5. Summary: packages touched, both writer outcomes (or skipped if user declined),
+   emulator note if relevant
 
 ### Complex feature with ADR candidates (expected path)
 
@@ -446,7 +464,7 @@ new triage prompt.
 2. Triage → `Verdict: complex`, `Executor: octopus`
 3. Octopus implements; returns ADR candidates, e.g.:
    - `Session store in Firestore subcollection: keeps auth state colocated with user profile`
-4. Parent classifies tests → launches writers as needed
+4. Parent classifies tests → if not `none`, AskQuestion → on Yes, launch writers
 5. Step 7 summary includes ADR candidates
 6. Step 8 AskQuestion: "Write ADR(s) now?" with candidate titles
 7. On Yes → background `generalPurpose` task reads `update-adr/SKILL.md` and
@@ -471,6 +489,7 @@ Before marking implement complete:
 - [ ] Executor was not asked to write or update tests
 - [ ] Escalation or down-escalation handled explicitly if it occurred
 - [ ] Step 6 classification recorded (`unit | e2e | both | none`) with a reason
+- [ ] If classification was not `none`: AskQuestion ran; writers launched only on Yes
 - [ ] Selected test writers ran (or skip was justified)
 - [ ] User got a concise summary with outcome, key paths, and test routing result
 - [ ] ADR candidates from octopus included in Step 7 summary when present
