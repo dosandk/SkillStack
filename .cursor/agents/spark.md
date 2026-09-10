@@ -106,10 +106,14 @@ If another agent is required: stop and escalate to the parent.
 - ESLint checks
 - Existing unit tests passed
 
-| Command            | Description                        |
-| ------------------ | ---------------------------------- |
-| npm run pre-commit | run eslint, prettier, editorconfig |
-| npm run test:run   | run unit tests                     |
+| Command                       | Description                     |
+| ----------------------------- | ------------------------------- |
+| `npx eslint <touched paths>`  | lint only the files you changed |
+| `npm run typecheck`           | TypeScript check                |
+| `npm run test:run`            | run unit tests                  |
+
+Lint the paths you touched — not `npx eslint .`, which reports pre-existing
+findings elsewhere in the repo that are not yours to fix.
 
 ## Output format
 

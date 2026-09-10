@@ -52,9 +52,47 @@ export async function storeRepoInfo(input: unknown): Promise<string> {
 }
 ```
 
+## Client (`client/src`)
+
+The same split with different names — `client/src` is the reference:
+
+- **Component** (`components/<Name>/<Name>.tsx`) — renders props and local UI
+  state; early-returns loading / error / empty. No fetching, no Firebase, no
+  `@shared`.
+- **Hook** (`hooks/use*.ts`) — owns async state and effect cleanup; calls `lib/`,
+  never Firestore or HTTP directly.
+- **Client** (`lib/`) — the only place that talks to `@shared` or the Firebase SDK.
+
+```tsx
+// ❌ BAD — component fetches, tracks state, AND renders
+export function RepositoryList() {
+  const [repositories, setRepositories] = useState<RepositoryWithId[]>([]);
+
+  useEffect(() => {
+    backendService.getRepositoriesList().then(({ repositories }) => {
+      setRepositories(repositories ?? []);
+    });
+  }, []);
+
+  return <List>{/* ... */}</List>;
+}
+
+// ✅ GOOD — component renders; the hook owns the async state
+export function RepositoryList() {
+  const { repositories, isLoading, error } = useRepositories();
+
+  if (isLoading) return <Skeleton variant="text" />;
+  if (error) return <ErrorState description="Could not load repositories." />;
+  if (repositories.length === 0) return <NoDataState />;
+
+  return <List>{/* ... */}</List>;
+}
+```
+
 ## Checklist
 
 - A unit has one reason to change; its description needs no "and".
 - Transport, domain rules, and data access live in separate units.
 - Handlers hold no business logic; stores hold no business rules.
+- Client components render only; hooks own async state; `lib/` owns the backend.
 - No stray debugging or unrelated cleanup inside a unit.

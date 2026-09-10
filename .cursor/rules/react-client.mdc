@@ -1,0 +1,161 @@
+---
+description: React conventions — hooks placement, render purity, effects, module exports
+globs: 'client/**/*.{ts,tsx}'
+alwaysApply: false
+---
+
+# React best practices
+
+## Hooks
+
+Call hooks only at the top level of a component or a `use*` function — never
+inside `if`, loops, nested functions, or `.map()`:
+
+```tsx
+// ❌ BAD
+function CatalogList({ catalogItems }: CatalogListProps) {
+  return catalogItems.map(catalogItem => {
+    const [isSelected, setIsSelected] = useState(false);
+    return <CatalogRow catalogItem={catalogItem} />;
+  });
+}
+
+// ✅ GOOD
+function CatalogRow({ catalogItem }: CatalogRowProps) {
+  const [isSelected, setIsSelected] = useState(false);
+  return <button onClick={() => setIsSelected(true)}>{catalogItem.name}</button>;
+}
+```
+
+Declare components and hooks at module level — never nested inside another
+component, which remounts them and resets their state on every render:
+
+```tsx
+// ❌ BAD
+function RepositoryPage({ repository }: RepositoryPageProps) {
+  function SkillBadge() {
+    return <Chip label={repository.repoSlug} />;
+  }
+  return <SkillBadge />;
+}
+
+// ✅ GOOD
+function SkillBadge({ repoSlug }: SkillBadgeProps) {
+  return <Chip label={repoSlug} />;
+}
+```
+
+List every value the body reads in the dependency array of `useEffect`,
+`useCallback`, and `useMemo`. Do not omit entries.
+
+## Render purity
+
+Render must be pure — no impure calls, no mutation of props, state, or globals:
+
+```tsx
+// ❌ BAD
+function SkillCard({ skill }: SkillCardProps) {
+  skill.viewedAt = Date.now();
+  renderCount += 1;
+  return <Card>{skill.name}</Card>;
+}
+
+// ✅ GOOD
+function SkillCard({ skill }: SkillCardProps) {
+  return <Card>{skill.name}</Card>;
+}
+```
+
+Do not read or write `ref.current` during render, and do not call a state setter
+while rendering — both belong in an effect or an event handler:
+
+```tsx
+// ❌ BAD
+function SkillCounter({ skillCount }: SkillCounterProps) {
+  if (skillCount === 0) setIsEmpty(true);
+  return <span>{skillCount}</span>;
+}
+
+// ✅ GOOD
+function SkillCounter({ skillCount }: SkillCounterProps) {
+  const isEmpty = skillCount === 0;
+  return <span>{isEmpty ? 'No skills' : skillCount}</span>;
+}
+```
+
+## Effects
+
+Do not mirror props or state into state with an effect — derive the value during
+render instead:
+
+```tsx
+// ❌ BAD
+useEffect(() => {
+  setSkillLabel(skill.name);
+}, [skill.name]);
+
+// ✅ GOOD
+const skillLabel = skill.name;
+```
+
+Effects that start async work or a subscription return a cleanup so nothing
+lands after unmount:
+
+```tsx
+// ✅ GOOD
+useEffect(() => {
+  let isActive = true;
+
+  fetchSkills().then(skills => {
+    if (isActive) setSkills(skills);
+  });
+
+  return () => {
+    isActive = false;
+  };
+}, []);
+```
+
+## Module exports
+
+A file that defines a component exports components only — named, never
+anonymous. Shared hooks, contexts, and helpers live in their own file;
+module-level constants may stay:
+
+```tsx
+// ❌ BAD — helper export in a component file
+export const formatRepoSlug = (repoSlug: string) => repoSlug.toLowerCase();
+
+export function RepositoryRow({ repository }: RepositoryRowProps) {
+  return <span>{formatRepoSlug(repository.repoSlug)}</span>;
+}
+
+// ✅ GOOD
+const SKELETON_ROW_COUNT = 4;
+
+export function RepositoryRow({ repository }: RepositoryRowProps) {
+  return <span>{repository.repoSlug}</span>;
+}
+```
+
+## Conditional JSX
+
+Guard with a boolean — a bare number or string leaks into the output:
+
+```tsx
+// ❌ BAD — renders `0` when there are no skills
+{skillCount && <Chip label={`${skillCount} skills`} />}
+
+// ✅ GOOD
+{skillCount > 0 && <Chip label={`${skillCount} skills`} />}
+```
+
+## Checklist
+
+- Hooks only at the top level of a component or `use*` function.
+- Components and hooks declared at module level, not nested.
+- Complete dependency arrays for `useEffect` / `useCallback` / `useMemo`.
+- Render is pure: no impure calls, no mutation, no ref I/O, no setter in render.
+- No prop/state mirrored into state via an effect; async effects clean up.
+- Component files export named components only.
+- Conditional JSX guarded by a boolean.

@@ -118,11 +118,15 @@ Use the next commands to validate:
 - ESLint checks
 - Existing unit/integration/e2e tests pass
 
-| Command             | Description                        |
-| ------------------- | ---------------------------------- |
-| npm run pre-commit  | run eslint, prettier, editorconfig |
-| npm run test:run    | run unit tests                     |
-| npm run test:e2e:ci | run e2e tests                      |
+| Command                      | Description                     |
+| ---------------------------- | ------------------------------- |
+| `npx eslint <touched paths>` | lint only the files you changed |
+| `npm run typecheck`          | TypeScript check                |
+| `npm run test:run`           | run unit tests                  |
+| `npm run test:e2e:ci`        | run e2e tests                   |
+
+Lint the paths you touched — not `npx eslint .`, which reports pre-existing
+findings elsewhere in the repo that are not yours to fix.
 
 ## Output format
 

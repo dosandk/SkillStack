@@ -7,7 +7,9 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import sonarjs from 'eslint-plugin-sonarjs';
 
 export default defineConfig([
-  globalIgnores(['dist', 'cli/coverage']),
+  // NOTE: eleks-ui is vendored design-system source — its MUI-mirroring prop types
+  // and *.figma.tsx stubs are not ours to fix
+  globalIgnores(['dist', 'cli/coverage', 'client/src/components/eleks-ui/**']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
