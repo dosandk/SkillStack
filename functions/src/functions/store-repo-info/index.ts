@@ -2,11 +2,12 @@ import { onRequest } from 'firebase-functions/https';
 import { logger } from 'firebase-functions';
 
 import { logError } from '../../utils/log-error';
+import { publicHttpOptions } from '../../utils/http-options';
 
 import { storeRepoInfo } from './function';
 
 export const apiStoreRepoInfo = onRequest(
-  { invoker: 'public' },
+  publicHttpOptions,
   async (request, response) => {
     try {
       console.log(request.body);

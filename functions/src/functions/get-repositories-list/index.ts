@@ -1,9 +1,10 @@
 import { onRequest } from 'firebase-functions/https';
 import { logError } from '../../utils/log-error';
+import { publicHttpOptions } from '../../utils/http-options';
 import { getRepositoriesList } from './function';
 
 export const apiGetRepositoriesList = onRequest(
-  { invoker: 'public' },
+  publicHttpOptions,
   async (_request, response) => {
     try {
       const repositories = await getRepositoriesList();

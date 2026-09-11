@@ -2,11 +2,12 @@ import { onRequest } from 'firebase-functions/https';
 import { logger } from 'firebase-functions';
 
 import { logError } from '../../utils/log-error';
+import { publicHttpOptions } from '../../utils/http-options';
 
 import { trackSkillsInstall } from './function';
 
 export const apiTrackSkillsInstall = onRequest(
-  { invoker: 'public' },
+  publicHttpOptions,
   async (request, response) => {
     try {
       const result = await trackSkillsInstall(request.body);
