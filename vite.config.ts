@@ -11,6 +11,9 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   // The React app lives in client/; everything below is resolved from repo root.
   root: path.resolve(__dirname, 'client'),
+  // .env* files live in the repo root, but Vite defaults envDir to `root`
+  // (client/). Point it back to the root so VITE_* vars get picked up.
+  envDir: __dirname,
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true
