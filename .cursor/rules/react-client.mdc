@@ -98,29 +98,70 @@ useEffect(() => {
 const skillLabel = skill.name;
 ```
 
-Effects that start async work or a subscription return a cleanup so nothing
-lands after unmount:
+Do not call `setState` (or a helper that does) in the **synchronous** body of
+`useEffect`. Setters belong in the async callback, a subscription, or an
+event handler.
+
+Initialize first-load flags in `useState`. To refetch when an id changes,
+remount with `key={id}` instead of resetting loading at the start of the
+effect:
 
 ```tsx
-// ✅ GOOD
+// ❌ BAD — synchronous setState in the effect body
 useEffect(() => {
-  let isActive = true;
-
-  fetchSkills().then(skills => {
-    if (isActive) setSkills(skills);
+  setIsLoading(true);
+  fetchSkills(repoId).then(skills => {
+    setSkills(skills);
+    setIsLoading(false);
   });
+}, [repoId]);
 
-  return () => {
-    isActive = false;
-  };
-}, []);
+// ✅ GOOD — loading starts true; remount when repoId changes
+function SkillList({ repoId }: SkillListProps) {
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let isActive = true;
+
+    fetchSkills(repoId)
+      .then(result => {
+        if (isActive) {
+          setSkills(result);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error(`Failed to load skills for ${repoId}:`, error);
+      })
+      .finally(() => {
+        if (isActive) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [repoId]);
+
+  return isLoading ? <Skeleton /> : <List>{/* skills */}</List>;
+}
+
+// Parent remounts so isLoading starts true again without setState in the effect
+<SkillList key={repoId} repoId={repoId} />
 ```
+
+A provider that must reload when an external value (for example signed-in
+user) changes may call a helper that sets state from `useEffect`.
+
+Effects that start async work or a subscription return a cleanup so nothing
+lands after unmount. Handle rejection with `.catch()`, not `void`.
 
 ## Module exports
 
-A file that defines a component exports components only — named, never
-anonymous. Shared hooks, contexts, and helpers live in their own file;
-module-level constants may stay:
+A file that defines a UI component exports named components only — never
+anonymous. Helpers, formatters, and non-hook utilities live in their own
+file. Module-level constants may stay:
 
 ```tsx
 // ❌ BAD — helper export in a component file
@@ -135,6 +176,23 @@ const SKELETON_ROW_COUNT = 4;
 
 export function RepositoryRow({ repository }: RepositoryRowProps) {
   return <span>{repository.repoSlug}</span>;
+}
+```
+
+Context modules may export the provider component and its `useX` hook from
+the same file. Do not split the hook into a second file:
+
+```tsx
+export function AuthProvider({ children }: AuthProviderProps) {
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }
 ```
 
@@ -156,6 +214,7 @@ Guard with a boolean — a bare number or string leaks into the output:
 - Components and hooks declared at module level, not nested.
 - Complete dependency arrays for `useEffect` / `useCallback` / `useMemo`.
 - Render is pure: no impure calls, no mutation, no ref I/O, no setter in render.
-- No prop/state mirrored into state via an effect; async effects clean up.
-- Component files export named components only.
+- No prop/state mirrored into state via an effect; no synchronous `setState` in `useEffect`.
+- Async effects clean up and attach `.catch()` (never `void`).
+- UI component files export named components only; context files may also export `useX`.
 - Conditional JSX guarded by a boolean.

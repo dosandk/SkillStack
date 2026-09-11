@@ -98,6 +98,9 @@ the user confirms it is a product change.
 - **No git commit / push** unless the user explicitly asked
 - **Parent owns ADR recording** — after product work, the parent may run `update-adr` only after AskQuestion confirmation. Never run
   `update-adr` without a Yes answer. Never ask spark or octopus to write wiki ADRs.
+  Never launch `update-adr` / the ADR `generalPurpose` task while `spark`,
+  `octopus`, `unituna`, or `e2eagle` is running. Do not combine the Step 6 and
+  Step 8 AskQuestion forms — ask ADRs only after Step 6 is fully done.
 
 ### Skip only when (narrow exceptions)
 
@@ -142,7 +145,7 @@ Implement progress:
 - [ ] Step 5: Handle executor outcome (done / escalated / down-escalated)
 - [ ] Step 6: Classify tests → if not none, AskQuestion → on Yes, launch writers (or skip)
 - [ ] Step 7: Summarize for the user
-- [ ] Step 8: If ADR candidates → AskQuestion → on Yes, run update-adr in background
+- [ ] Step 8: After Step 6 is done, if ADR candidates → AskQuestion → on Yes, run update-adr (blocking)
 ```
 
 ### Step 1 — Capture task brief
@@ -363,22 +366,23 @@ Do not paste entire agent outputs unless the user asks for details.
 
 ### Step 8 — Record ADRs (conditional, last)
 
-Enter when executor status is `done` and the ADR candidates list is non-empty
+Enter only after Step 6 is fully done (writers finished, skipped, or classification
+`none`), when executor status is `done` and the ADR candidates list is non-empty
 (primarily from octopus). Skip when candidates are empty, `<None>`, or when
-blocked/escalated with no candidates.
+blocked/escalated with no candidates. Do not AskQuestion for ADRs until then.
 
 1. **AskQuestion** with exactly two options, e.g.:
    - **Yes — write ADR(s) now**
    - **No — leave as follow-up**
 
    Include the candidate titles (and one-line whys) in the prompt so the user
-   can decide.
+   can decide. Do not include this in the Step 6 tests AskQuestion.
 
 2. **On No** — note ADR recording skipped in the summary; stop.
 
-3. **On Yes** — launch exactly one background Task:
+3. **On Yes** — launch exactly one Task and wait for it to finish:
    - `subagent_type: "generalPurpose"`
-   - `run_in_background: true`
+   - `run_in_background: false`
    - `description: "Write ADR(s)"`
 
    Prompt shape:
@@ -394,8 +398,8 @@ blocked/escalated with no candidates.
    Do not commit.
    ```
 
-4. **After launch** — do not await the background task; rely on the end-of-turn
-   completion notification. Mark Step 8 complete once the task is launched.
+4. After it finishes, note the ADR files (or skip) as a follow-up to the Step 7
+   summary. Mark Step 8 complete only then.
 
 ---
 
@@ -465,9 +469,9 @@ that is Step 5 AskQuestion (relaunch spark/octopus or stop).
    - `Session store in Firestore subcollection: keeps auth state colocated with user profile`
 4. Parent classifies tests → if not `none`, AskQuestion → on Yes, launch writers
 5. Step 7 summary includes ADR candidates
-6. Step 8 AskQuestion: "Write ADR(s) now?" with candidate titles
-7. On Yes → background `generalPurpose` task reads `update-adr/SKILL.md` and
-   writes ADR(s); parent does not await
+6. Step 8 AskQuestion: "Write ADR(s) now?" with candidate titles (after tests)
+7. On Yes → blocking `generalPurpose` task reads `update-adr/SKILL.md` and
+   writes ADR(s); parent waits until it finishes
 
 ### Ambiguous request
 
@@ -498,6 +502,6 @@ Before marking implement complete:
 - [ ] Selected test writers ran (or skip was justified)
 - [ ] User got a concise summary with outcome, key paths, and test routing result
 - [ ] ADR candidates from octopus included in Step 7 summary when present
-- [ ] Step 8: AskQuestion ran when candidates non-empty; update-adr launched in
-      background only on Yes (or skip justified)
+- [ ] Step 8: AskQuestion ran when candidates non-empty, only after Step 6;
+      blocking update-adr ran only on Yes (or skip justified)
 - [ ] No commit unless explicitly requested

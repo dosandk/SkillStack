@@ -3,7 +3,7 @@ name: unituna
 description: >-
   Responsible agent for adding or updating unit tests for behavior affected
   by the current changes
-model: inherit
+model: composer-2.5
 ---
 
 # Unituna

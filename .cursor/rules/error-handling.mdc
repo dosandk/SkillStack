@@ -192,7 +192,8 @@ when appropriate.
 
 ## Promise Handling
 
-Never leave rejected promises unhandled.
+Never leave rejected promises unhandled. Do not use the `void` operator
+(`void doWork()`).
 
 Prefer
 
@@ -200,10 +201,12 @@ Prefer
 await doWork();
 ```
 
-If fire-and-forget is intentional
+If fire-and-forget is intentional, attach `.catch()` and log with context:
 
 ```ts
-void doWork();
+doWork().catch((error: unknown) => {
+  console.error('Failed to do work:', error);
+});
 ```
 
 ## Concurrent Operations
