@@ -62,5 +62,11 @@ npm run test:run                       # client + shared
 npm --prefix cli run test:run
 npm --prefix functions run test:run    # unit
 npm --prefix functions run test:all    # unit + integration (emulators)
+npm run playwright:install             # Chromium into node_modules (once per Playwright version)
 npm run test:e2e                       # Playwright (emulators)
 ```
+
+E2E scripts set `PLAYWRIGHT_BROWSERS_PATH=0` so Chromium is stored under
+`node_modules/playwright-core/.local-browsers`, not the OS Playwright cache. Run
+`playwright:install` after `npm install` (or a Playwright upgrade) before the first
+`test:e2e`. Variants: `test:e2e:ui`, `test:e2e:headed`.

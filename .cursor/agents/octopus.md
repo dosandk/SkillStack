@@ -125,6 +125,8 @@ Use the next commands to validate:
 | `npm run test:run`           | run unit tests                  |
 | `npm run test:e2e:ci`        | run e2e tests                   |
 
+If you run `npm run test:e2e` / `test:e2e:ci`, do it unsandboxed (full/`all` permissions). Do not run it in the sandbox.
+
 Lint the paths you touched — not `npx eslint .`, which reports pre-existing
 findings elsewhere in the repo that are not yours to fix.
 

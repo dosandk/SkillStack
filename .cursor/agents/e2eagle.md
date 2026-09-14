@@ -100,6 +100,8 @@ Prefer the project's standard E2E script. Do not invent alternate runners.
 npm run test:e2e
 ```
 
+Run it unsandboxed (full/`all` permissions). Do not run it in the sandbox.
+
 If `test:e2e` is missing, discover the correct script once from `package.json`
 / Playwright config and use that thereafter. If the suite cannot run,
 STATUS=BLOCKED with the failed command in BLOCKERS.

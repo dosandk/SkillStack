@@ -52,6 +52,7 @@ npm run build            # tsc -p tsconfig.client.json + vite build → dist/
 npm run typecheck        # tsc -p tsconfig.client.json (no emit)
 npm run test:run         # vitest run — 'shared' (node) + 'client' (jsdom) projects
 npm run emulators        # firebase emulators:start (auth:9099, functions:5001, firestore:8080, UI on)
+npm run playwright:install  # Chromium into node_modules/playwright-core/.local-browsers
 npm run test:e2e         # build functions, run Playwright under auth+functions+firestore emulators
 npm run pre-commit       # lint-staged (also fired by husky pre-commit hook)
 ```
@@ -96,5 +97,6 @@ npm run test:run     # vitest run
 `test:e2e` builds `functions`, then runs `playwright test` inside `firebase emulators:exec`.
 It spawns the Vite **dev** server (not a build) so `import.meta.env.DEV` is true and the
 client targets the local Functions emulator. Specs run serially (`workers: 1`) because they
-share one emulator and clear/seed Firestore between cases. Variants: `test:e2e:ui`,
-`test:e2e:headed`. Authoring flow: `.cursor/skills/create-e2e-tests/SKILL.md`.
+share one emulator and clear/seed Firestore between cases. Chromium is in `node_modules`
+(`PLAYWRIGHT_BROWSERS_PATH=0`); use `playwright:install`, not `npx playwright install`.
+Variants: `test:e2e:ui`, `test:e2e:headed`.
