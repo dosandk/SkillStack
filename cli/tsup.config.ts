@@ -1,9 +1,14 @@
 // import { cpSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { config as loadEnv } from 'dotenv';
 import { defineConfig } from 'tsup';
 
 const cliDir = path.dirname(fileURLToPath(import.meta.url));
+
+// NOTE: tsup does not load cli/.env — read build-time vars before define substitution.
+loadEnv({ path: path.resolve(cliDir, '.env') });
 
 // NOTE: read at build time — the `dev` script sets NODE_ENV via cross-env for the tsup
 // process, so it is reliable here (unlike inside the emitted bundle, where it is unset).
@@ -41,6 +46,7 @@ export default defineConfig({
     'process.env.NPM_PACKAGE_VERSION': JSON.stringify(packageVersion),
     // NOTE: inline NODE_ENV into the bundle — esbuild does not substitute it otherwise, so
     // the runtime lookup would resolve to undefined when the built CLI is executed.
-    'process.env.NODE_ENV': JSON.stringify(nodeEnv)
+    'process.env.NODE_ENV': JSON.stringify(nodeEnv),
+    'import.meta.env.VITE_BACKEND_URL': JSON.stringify(process.env.BACKEND_URL)
   }
 });
