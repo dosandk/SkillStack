@@ -1,5 +1,5 @@
 ---
-name: review
+name: review-flow
 description: >-
   Post-implementation review of changed code — test coverage quality, security,
   defects, acceptance criteria, and repo quality gates.
