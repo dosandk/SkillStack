@@ -1,5 +1,5 @@
 ---
-name: implement
+name: implement-flow
 description: >-
   Mandatory gate for product and feature implementation. Read and follow this
   skill before Write/Edit/Delete on product source whenever the user wants to
