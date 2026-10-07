@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Public catalog data — written only by the `functions/` backend via the Admin
+    // SDK (which bypasses these rules), so client-side writes are always denied.
+    match /repositories/{repoId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /skills/{skillId} {
+        allow read: if true;
+        allow write: if false;
+      }
+    }
+
+    // One document per user, keyed by uid — readable/writable only by its owner.
+    match /favorites/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Anyone with the id/link can read a shared collection (that is the point of
+    // sharing); only the owner can create one, and it is immutable afterwards.
+    match /sharedCollections/{shareId} {
+      allow read: if true;
+      allow create: if request.auth != null &&
+        request.auth.uid == request.resource.data.ownerId;
+      allow update, delete: if false;
+    }
+  }
+}
