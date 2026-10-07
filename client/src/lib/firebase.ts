@@ -2,7 +2,8 @@ import { initializeApp } from 'firebase/app';
 import {
   connectAuthEmulator,
   getAuth,
-  GithubAuthProvider
+  GithubAuthProvider,
+  signInWithCredential
 } from 'firebase/auth';
 
 // NOTE: these are public Firebase web-config identifiers, not secrets — they ship
@@ -26,4 +27,28 @@ export const githubProvider = new GithubAuthProvider();
 // GitHub sign-in works without a real OAuth app; production hits real Firebase.
 if (import.meta.env.DEV) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+
+  // NOTE: dev-only Playwright hook — the Firebase Auth Emulator popup handshake
+  // is racy under headless Chromium (window.opener postMessage can be lost as
+  // the popup closes), so E2E tests bypass signInWithPopup and drive
+  // signInWithCredential with a mock GitHub credential accepted by the emulator.
+  // Guarded by import.meta.env.DEV so it never ships to production.
+  interface TestSignInPayload {
+    sub: string;
+    email: string;
+    name: string;
+  }
+
+  (
+    window as unknown as {
+      __signInWithMockGithubCredential?: (
+        payload: TestSignInPayload
+      ) => Promise<void>;
+    }
+  ).__signInWithMockGithubCredential = async payload => {
+    const idToken = JSON.stringify(payload);
+    const credential = GithubAuthProvider.credential(idToken);
+
+    await signInWithCredential(auth, credential);
+  };
 }

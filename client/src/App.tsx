@@ -1,18 +1,25 @@
-import { Container, Heading } from '@eleks-ui/components';
+import { Route, Routes } from 'react-router-dom';
 
-import { RepositoryList } from './components/RepositoryList/RepositoryList';
+import { AppHeader } from './components/AppHeader/AppHeader';
+import { CatalogPage } from './pages/CatalogPage/CatalogPage';
+import { FavoritesPage } from './pages/FavoritesPage/FavoritesPage';
+import { RepositoryDetailPage } from './pages/RepositoryDetailPage/RepositoryDetailPage';
+import { SharedCollectionPage } from './pages/SharedCollectionPage/SharedCollectionPage';
 
 function App() {
   return (
-    <Container sx={{ py: 4 }}>
-      <Heading
-        variant="page"
-        title="Repositories"
-        subtitle="Browse available skill repositories"
-        divider
-      />
-      <RepositoryList />
-    </Container>
+    <>
+      <AppHeader />
+      <Routes>
+        <Route path="/" element={<CatalogPage />} />
+        <Route
+          path="/repositories/:repoId"
+          element={<RepositoryDetailPage />}
+        />
+        <Route path="/favorites" element={<FavoritesPage />} />
+        <Route path="/shared/:shareId" element={<SharedCollectionPage />} />
+      </Routes>
+    </>
   );
 }
 

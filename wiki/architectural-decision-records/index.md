@@ -14,3 +14,8 @@
 | 007 | [Repository aggregate root + skills subcollection](./007-adr.md)  |
 | 008 | [Vendored ELEKS UI, accessed only via aliases](./008-adr.md)      |
 | 009 | [CLI built as a Commander app bundled with tsup](./009-adr.md)    |
+| 010 | [Auth-token propagation via `setAuthTokenProvider`](./010-adr.md) |
+| 011 | [Repo detail reuses `repository.skills` from list](./011-adr.md)  |
+| 012 | [Favorites mutations return the full enriched list](./012-adr.md) |
+| 013 | [Single `create-share-link` endpoint (all / one repo)](./013-adr.md) |
+| 014 | [`AppLink` / `AppNavButton` wrap ELEKS UI Link/Button](./014-adr.md) |

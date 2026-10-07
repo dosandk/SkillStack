@@ -65,11 +65,11 @@ program
 program
   .command('add')
   .description('add skills...')
-  .argument('<repoUrl>', 'GitHub repository URL')
-  .option('--skill <names...>', 'skill names to install')
-  .action(async (repoUrl, options) => {
+  .argument('<repoUrlOrShareLink>', 'GitHub repository URL or SkillStack share link')
+  .option('--skill <names...>', 'skill names to install (ignored for share links)')
+  .action(async (repoUrlOrShareLink, options) => {
     try {
-      await add(repoUrl, options.skill);
+      await add(repoUrlOrShareLink, options.skill);
     } catch (error) {
       // NOTE: show this output for user
       console.error(`🔴 Error: ${error.message}`);

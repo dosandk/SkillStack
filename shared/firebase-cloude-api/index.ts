@@ -40,6 +40,39 @@ type TrackSkillsInstallResponse = {
   missingSkills: string[];
 };
 
+// NOTE: mirrors functions/src/services/favorites-store.ts FavoriteRepoState, enriched
+// server-side with repoSlug/owner so clients don't need a second round trip.
+export interface FavoriteRepoEntry {
+  repoId: string;
+  repoSlug: string;
+  owner: string;
+  all: boolean;
+  skills: string[];
+}
+
+type GetFavoritesResponse = { favorites: FavoriteRepoEntry[] };
+
+type CreateShareLinkResponse = { shareId: string };
+
+// NOTE: mirrors functions/src/services/shared-collections-store.ts ShareEntry —
+// `skills: 'all'` means every skill of that repo was favorited at share time.
+export interface SharedCollectionEntry {
+  repoId: string;
+  repoSlug: string;
+  owner: string;
+  defaultBranch: string;
+  skills: string[] | 'all';
+}
+
+export interface SharedCollectionResponse {
+  shareId: string;
+  ownerId: string;
+  createdAt: string;
+  entries: SharedCollectionEntry[];
+}
+
+type AuthTokenProvider = () => Promise<string | null>;
+
 export class BackendApiError extends Error {
   readonly status?: number;
   readonly url?: string;
@@ -66,10 +99,12 @@ interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
   headers?: Record<string, string>;
+  query?: Record<string, string>;
 }
 
 export class BackendService {
   private readonly baseUrl: string | undefined;
+  private authTokenProvider: AuthTokenProvider | null = null;
 
   constructor(baseUrl: string | undefined) {
     this.baseUrl = baseUrl;
@@ -77,6 +112,13 @@ export class BackendService {
 
   run() {
     console.log('hello backend');
+  }
+
+  // NOTE: decouples @shared from the Firebase client SDK — the consuming app (client/)
+  // registers a provider that reads the current Firebase user's ID token; the CLI never
+  // registers one, so its requests stay unauthenticated (only public endpoints apply).
+  setAuthTokenProvider(provider: AuthTokenProvider | null): void {
+    this.authTokenProvider = provider;
   }
 
   async storeRepoInfo(payload: StoreRepoInfoPayload): Promise<StoreRepoInfo> {
@@ -111,17 +153,69 @@ export class BackendService {
     );
   }
 
+  async getFavorites(): Promise<GetFavoritesResponse> {
+    return this.request<GetFavoritesResponse>('apiGetFavorites');
+  }
+
+  async addRepoFavorite(repoId: string): Promise<GetFavoritesResponse> {
+    return this.request<GetFavoritesResponse>('apiAddRepoFavorite', {
+      method: 'POST',
+      body: { repoId }
+    });
+  }
+
+  async addSkillFavorite(
+    repoId: string,
+    skill: string
+  ): Promise<GetFavoritesResponse> {
+    return this.request<GetFavoritesResponse>('apiAddSkillFavorite', {
+      method: 'POST',
+      body: { repoId, skill }
+    });
+  }
+
+  async removeFavorite(
+    repoId: string,
+    skill?: string
+  ): Promise<GetFavoritesResponse> {
+    return this.request<GetFavoritesResponse>('apiRemoveFavorite', {
+      method: 'POST',
+      body: { repoId, skill }
+    });
+  }
+
+  async createShareLink(repoIds?: string[]): Promise<CreateShareLinkResponse> {
+    return this.request<CreateShareLinkResponse>('apiCreateShareLink', {
+      method: 'POST',
+      body: { repoIds }
+    });
+  }
+
+  async getSharedCollection(
+    shareId: string
+  ): Promise<SharedCollectionResponse> {
+    return this.request<SharedCollectionResponse>('apiGetSharedCollection', {
+      query: { shareId }
+    });
+  }
+
   private async request<TResponse>(
     endpoint: string,
     options: RequestOptions = {}
   ): Promise<TResponse> {
     const method = options.method?.toUpperCase() || 'GET';
-    const url = `${this.baseUrl}/${endpoint}`;
+    const queryString = options.query
+      ? `?${new URLSearchParams(options.query).toString()}`
+      : '';
+    const url = `${this.baseUrl}/${endpoint}${queryString}`;
+
+    const authToken = await this.authTokenProvider?.();
 
     const requestOptions: RequestInit = {
       method,
       headers: {
         'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...options.headers
       }
     };

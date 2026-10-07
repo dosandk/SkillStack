@@ -9,3 +9,5 @@ export const APP_URL = `http://localhost:${APP_PORT}`;
 export const FUNCTIONS_BASE_URL = `http://127.0.0.1:5001/${PROJECT_ID}/us-central1`;
 
 export const FIRESTORE_HOST = '127.0.0.1:8080';
+
+export const AUTH_HOST = '127.0.0.1:9099';
