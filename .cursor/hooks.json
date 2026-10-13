@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "hooks": {
+    "subagentStop": [
+      {
+        "command": "node .cursor/hooks/validate-agent-handoff.mjs",
+        "matcher": "^(spark|octopus)$",
+        "loop_limit": 1,
+        "timeout": 10,
+        "failClosed": false
+      }
+    ]
+  }
+}

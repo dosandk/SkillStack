@@ -255,14 +255,17 @@ Wait for the executor to finish. Do not implement in the parent in parallel.
 
 ### Step 5 — Handle executor outcome
 
-| Status      | Parent action                                         |
-| ----------- | ----------------------------------------------------- |
-| `done`      | Proceed to Step 6                                     |
-| `escalated` | AskQuestion; Relauch spark/octopus after user answers |
+Read `status` from the executor JSON.
+
+| Status                            | Parent action                                                                            |
+| --------------------------------- | ---------------------------------------------------------------------------------------- |
+| `done`                            | Proceed to Step 6                                                                        |
+| `escalated`                       | AskQuestion from `blockers`; relaunch Spark or Octopus only after the user chooses that |
+| missing JSON or invalid `status`  | Stop before Step 6. Ask whether to relaunch the executor. Do not infer `status`         |
 
 Never silently ignore escalation.
 
-AskQuestion: 2–4 options from the escalation payload.
+AskQuestion for escalation: 2–4 options from `blockers` (`blocker` and `neededFromParent`).
 
 ### Step 6 — Classify and run test writers
 
@@ -348,35 +351,41 @@ in-repo, validation commands — npm run test:e2e). Do not commit.
 
 ### Step 7 — Summarize for the user
 
-Return a short summary:
+Return this summary. Text in double braces, such as `{{status}}`, is a field of the executor JSON — copy its value. Any other text is an instruction for writing that line. Omit the ADR line for Spark.
 
-1. **Triage** — verdict (`simple` / `complex`) in one line, or no verdict when
-   blocked after 3 `NEEDS_CLARIFICATION` results
-2. **Outcome** — done / escalated / blocked + what changed
-3. **Files touched** — key paths from executor and any test writers (not a raw
-   dump unless small)
-4. **Tests** — `unit | e2e | both | none — <reason>`, plus each writer outcome
-   (or "skipped — user declined" / "skipped — <reason>")
-5. **Checks** — typecheck/lint/tests run and result
-6. **ADR candidates** — list from octopus (or `<None>` / none from spark); shown
-   before Step 8 AskQuestion when present
-7. **Follow-ups** — manual verification, or commit if the user asked
+```text
+Triage: the Step 2 verdict
 
-Do not paste entire agent outputs unless the user asks for details.
+Status: {{status}}
+
+Outcome: {{changes}}
+
+Files touched: {{filesTouched}}
+
+Tests: the Step 6 classification, why it was chosen, and whether the writers ran or were skipped
+
+Checks: {{checks}}
+
+ADR candidates: {{adrCandidates}}
+
+Follow-ups: what still needs a person — manual verification, or a commit when the user asked for one
+```
+
+Do not paste the executor JSON unless the user asks for details.
 
 ### Step 8 — Record ADRs (conditional, last)
 
 Enter only after Step 6 is fully done (writers finished, skipped, or classification
-`none`), when executor status is `done` and the ADR candidates list is non-empty
-(primarily from octopus). Skip when candidates are empty, `<None>`, or when
-blocked/escalated with no candidates. Do not AskQuestion for ADRs until then.
+`none`), when executor `status` is `done` and Octopus `adrCandidates` has at least one
+`title` and `why`. Skip for Spark, when `adrCandidates` is empty, or when blocked
+or escalated with no candidates. Do not AskQuestion for ADRs until then.
 
 1. **AskQuestion** with exactly two options, e.g.:
    - **Yes — write ADR(s) now**
    - **No — leave as follow-up**
 
-   Include the candidate titles (and one-line whys) in the prompt so the user
-   can decide. Do not include this in the Step 6 tests AskQuestion.
+   Include each Octopus `adrCandidates` item as `title — why` in the prompt so the
+   user can decide. Do not include this in the Step 6 tests AskQuestion.
 
 2. **On No** — note ADR recording skipped in the summary; stop.
 
@@ -392,7 +401,7 @@ blocked/escalated with no candidates. Do not AskQuestion for ADRs until then.
 
    ## ADR candidates
 
-   <paste the candidate list from octopus — title + one-line why per item>
+   <paste Octopus adrCandidates as title — why per item>
 
    Write one ADR per decision. Do not invent scope beyond the payload above.
    Do not commit.

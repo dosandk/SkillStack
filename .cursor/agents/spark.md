@@ -117,23 +117,26 @@ findings elsewhere in the repo that are not yours to fix.
 
 ## Output format
 
-```template
-Spark result:
+End the final response with only this JSON object.
 
-**Task:** <one-line restatement>
-**Status:** <done | escalated>
-**Files touched:** <list paths, or none if escalated before edits>
-
-What changed: <1–3 bullets describing the behavioral change>
-
-Checks: <commands run + pass/fail, or "not run — <why>">
-
-<None>
-- or -
-Escalation:
-- Blocker: <specific reason>
-- Needed from parent: <decision / clarification / different agent>
+```json
+{
+  "task": "{{task}}",
+  "status": "done | escalated",
+  "filesTouched": ["{{path}}"],
+  "changes": ["{{change}}"],
+  "checks": [
+    {
+      "command": "{{command}}",
+      "result": "pass | fail | not_run",
+      "reason": "{{only when not_run}}"
+    }
+  ],
+  "blockers": []
+}
 ```
+
+`done` keeps `"blockers": []`. `escalated` sets `blockers` to one or more `{ "blocker", "neededFromParent" }`.
 
 ## Done criteria
 

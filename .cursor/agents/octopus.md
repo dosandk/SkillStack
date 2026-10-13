@@ -132,36 +132,29 @@ findings elsewhere in the repo that are not yours to fix.
 
 ## Output format
 
-Return **only** this structure to the parent:
+End the final response with only this JSON object.
 
-```template
-Octopus result
-
-**Task:** <one-line restatement>
-**Status:** <done | escalated >
-**Packages touched:** <list>
-**Files touched:** <list paths>
-
-Plan executed
-
-1. Implementation steps: <short list matching completed todos>
-2. Checks: <commands run + pass/fail>
-
-What changed: <behavior deltas, not a file dump>
-
-ADR candidates
-
-<None>
-— or —
-- <title>: <one-line decision + why>
-- <title>: <one-line decision + why>
-
-Blockers / left unfinished
-
-<None.>
-— or —
-- <item + what the parent must decide>
+```json
+{
+  "task": "{{task}}",
+  "status": "done | escalated",
+  "packagesTouched": ["{{package}}"],
+  "filesTouched": ["{{path}}"],
+  "plan": ["{{step}}"],
+  "changes": ["{{change}}"],
+  "checks": [
+    {
+      "command": "{{command}}",
+      "result": "pass | fail | not_run",
+      "reason": "{{only when not_run}}"
+    }
+  ],
+  "adrCandidates": [{ "title": "{{title}}", "why": "{{why}}" }],
+  "blockers": []
+}
 ```
+
+`done` keeps `"blockers": []`. `escalated` sets `blockers` to one or more `{ "blocker", "neededFromParent" }`. `adrCandidates` is `[]` when there is nothing to record.
 
 ## Done criteria
 

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task", "status", "filesTouched", "changes", "checks", "blockers"],
+  "properties": {
+    "task": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["done", "escalated"] },
+    "filesTouched": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "changes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "result"],
+        "properties": {
+          "command": { "type": "string", "minLength": 1 },
+          "result": { "enum": ["pass", "fail", "not_run"] },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["blocker", "neededFromParent"],
+        "properties": {
+          "blocker": { "type": "string", "minLength": 1 },
+          "neededFromParent": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "escalated" } },
+        "required": ["status"]
+      },
+      "then": { "properties": { "blockers": { "minItems": 1 } } }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "done" } },
+        "required": ["status"]
+      },
+      "then": { "properties": { "blockers": { "maxItems": 0 } } }
+    }
+  ]
+}
