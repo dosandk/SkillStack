@@ -1,256 +1,217 @@
 ---
-description: Error handling
+description: Error handling and logging — throw Error with context, preserve cause, never swallow, log once at the boundary, right level, no secrets
 globs: '**/*.{ts,tsx,js,jsx,mjs,cjs}'
 alwaysApply: true
 ---
 
-# Reliability & Error Handling
+# Error handling and logging
 
-## General Principles
+Treat every external system (GitHub API, Firestore, filesystem, network) and every
+async operation as something that can fail. Prefer preventing errors over handling
+them, fail fast on invalid state, and never trade correctness for convenience.
+Messages, logs, and comments are in English.
 
-- Error and log messages are in English.
-- Throw `Error` (or a subclass), never a string/object.
-- Messages are actionable: subject + context (id, value, status).
-- Prefer preventing errors over handling them.
-- Wrapped errors preserve the original via `{ cause }`.
-- No empty `catch`; errors are handled, rethrown, or logged with context.
-- Correct level: `error` for failures, `warn` for recoverable, `log` for progress.
-- No secrets or personal data in messages.
-- Localized UI copy lives in i18n files, not inline literals.
-- Fail fast when the application reaches an invalid state.
-- Treat all external systems (API, filesystem, database, network) as unreliable.
-- Assume every asynchronous operation may fail.
-- Never sacrifice correctness for convenience.
+## Rule 1 — Throw `Error`, never strings or plain objects
 
-## Catching Errors
-
-- Catch errors only when you can:
-  - recover,
-  - add meaningful context,
-  - translate them into domain errors,
-  - perform cleanup,
-  - or log them at the appropriate boundary.
-
-- Do not add redundant try/catch blocks that simply rethrow.
-
-Bad
+Only `Error` (or a subclass) carries a stack trace.
 
 ```ts
+// ❌ BAD
+throw `not found`;
+throw { code: 404 };
+
+// ✅ GOOD
+throw new Error('Repository tree not found');
+```
+
+## Rule 2 — Messages are actionable: subject + context
+
+State what failed and include the identifiers needed to act on it (repo, ref,
+path, status, count). Avoid bare "Error", "Failed", "Something went wrong".
+
+```ts
+// ❌ BAD — no context
+throw new Error('request failed');
+console.log('done');
+
+// ✅ GOOD
+throw new Error(`GitHub API ${response.status} for ${owner}/${repo}`);
+console.log(`Created ${createdFiles} file(s) and ${createdDirs} dir(s)`);
+```
+
+## Rule 3 — Preserve the cause when wrapping
+
+When an error crosses a layer boundary, enrich it with context and keep the
+original via `{ cause }`. Never flatten it into a string or drop it.
+
+```ts
+// ❌ BAD — original stack lost
+catch (error) {
+  throw new Error('Failed to fetch blob');
+}
+
+// ✅ GOOD
+catch (error) {
+  throw new Error(`Failed to fetch blob ${sha}`, { cause: error });
+}
+```
+
+## Rule 4 — Catch only when you add value
+
+Catch when you can recover, add context, translate to a domain error, clean up,
+or log at the boundary. A `try/catch` that only rethrows is noise.
+
+```ts
+// ❌ BAD
 try {
   return await service();
 } catch (error) {
   throw error;
 }
-```
 
-Good
-
-```ts
+// ✅ GOOD
 return service();
 ```
 
-## Never Swallow Errors
+## Rule 5 — Never swallow errors
 
-Never ignore exceptions.
-
-Bad
-
-```ts
-catch {}
-```
-
-Bad
+No empty `catch`. Handle it, rethrow it (optionally wrapped), or log it with
+context — silent failures hide bugs.
 
 ```ts
-catch (error) {
-    console.error(error);
+// ❌ BAD
+try {
+  await pull(options);
+} catch {}
+
+// ✅ GOOD
+try {
+  await pull(options);
+} catch (error) {
+  console.error(`Pull failed for ${options.repoUrl}:`, error);
+  throw error;
 }
 ```
 
-Good
+## Rule 6 — Log once, at the boundary
+
+Each failure is logged exactly once, at the outermost layer that owns the
+request: the HTTP handler in `functions/` (via `logError`), the CLI entrypoint,
+or the client hook that renders the error. Lower layers throw; they do not log.
 
 ```ts
-catch (error) {
-    logger.error("Failed to process booking", {
-        bookingId,
-        error,
-    });
-
+// ❌ BAD — store logs, domain logs, handler logs the same failure
+async function add(data: Repository) {
+  try {
+    return await collection.add(data);
+  } catch (error) {
+    console.error(error); // and again two layers up
     throw error;
+  }
 }
-```
 
-## Add Context
-
-Whenever an error crosses a layer boundary, enrich it with useful context.
-
-Prefer
-
-- booking id
-- customer id
-- request id
-- resource name
-- operation name
-
-instead of generic messages.
-
-Bad
-
-```ts
-throw error;
-```
-
-Good
-
-```ts
-throw new Error(`Failed to save booking ${bookingId}`, { cause: error });
-```
-
-## Preserve Root Cause
-
-Never lose the original stack trace.
-
-Prefer
-
-```ts
-throw new Error(message, {
-  cause: error
+// ✅ GOOD — only the handler logs; the store and domain just throw
+export const apiStoreRepoInfo = onRequest(async (request, response) => {
+  try {
+    const id = await storeRepoInfo(request.body);
+    response.status(201).send({ id });
+  } catch (error) {
+    logError('Failed to write repository', error);
+    response.status(400).send({ error: 'Invalid repository payload' });
+  }
 });
 ```
 
-over creating unrelated errors.
+## Rule 7 — Right level, proportionate volume
 
-## Log Once
-
-Errors should be logged exactly once.
-
-Do not log the same exception at every layer.
-
-Preferred logging boundary:
-
-- HTTP controller
-- CLI entrypoint
-- background worker
-- queue consumer
-
-Lower layers should usually throw instead of log.
-
-## Use Domain Errors
-
-Prefer specific error types.
-
-Good
-
-- ValidationError
-- UserNotFoundError
-- BookingConflictError
-- PermissionDeniedError
-
-Avoid generic
+`console.error` / `logger.error` for failures, `warn` for recoverable or
+tolerated conditions, `log` / `info` for normal progress. Never report an error
+at `log` level. Summarize bulk work with a count instead of one line per item in
+a hot loop.
 
 ```ts
-throw new Error(...)
+// ❌ BAD — error reported at log level
+console.log('failed to write file');
+
+// ✅ GOOD
+console.error(`Failed to write ${target}`);
+console.warn(`Directory "${prefix}" is truncated — result may be partial`);
+console.log(`Repository: ${owner}/${repo} (ref: ${resolvedRef})`);
 ```
 
-for business failures.
+## Rule 8 — No secrets or personal data
 
-## Validate Early
-
-Validate all public inputs immediately.
-
-Examples
-
-- API payload
-- CLI arguments
-- environment variables
-- configuration
-- user input
-
-Never rely on downstream failures for validation.
-
-## Fail Fast
-
-Stop execution immediately after detecting invalid state.
-Avoid continuing with partially invalid objects.
-
-## Timeouts
-
-Every network operation should have an explicit timeout.
-Never wait indefinitely.
-
-## Cleanup
-
-Resources must always be released.
-
-Use
-
-- finally
-- AbortController
-- disposable resources
-
-when appropriate.
-
-## Promise Handling
-
-Never leave rejected promises unhandled. Do not use the `void` operator
-(`void doWork()`).
-
-Prefer
+Tokens, passwords, keys, and personal data never go into an error message or
+log — they leak into stack traces and log aggregation.
 
 ```ts
+// ❌ BAD
+console.log(`Authorizing with token ${token}`);
+throw new Error(`Auth failed for token ${token}`);
+
+// ✅ GOOD
+console.log('Authorizing with provided token');
+throw new Error('Authentication failed (401)');
+```
+
+## Rule 9 — Validate early, fail fast
+
+Validate public and untrusted input (API payloads, CLI arguments, env vars,
+config) at the boundary with a schema, then stop immediately on invalid state.
+Never rely on a downstream failure to do the validation. Schema conventions:
+`typescript-best-practices.mdc`.
+
+## Rule 10 — Domain errors for business failures
+
+When a caller must branch on the failure kind (validation vs not-found vs
+conflict vs permission), throw a specific `Error` subclass rather than a generic
+`Error` with a magic message.
+
+## Rule 11 — Promises and concurrency
+
+Never leave a rejected promise unhandled and never use the `void` operator to
+discard one. Prefer `await`; for intentional fire-and-forget, attach `.catch()`
+and log with context. Use `Promise.all` only when one failure should fail the
+whole operation, `Promise.allSettled` when partial success is acceptable.
+
+```ts
+// ❌ BAD
+void doWork();
+
+// ✅ GOOD
 await doWork();
-```
 
-If fire-and-forget is intentional, attach `.catch()` and log with context:
-
-```ts
 doWork().catch((error: unknown) => {
   console.error('Failed to do work:', error);
 });
 ```
 
-## Concurrent Operations
+## Rule 12 — Timeouts and cleanup
 
-Use
+Every network call has an explicit timeout; never wait indefinitely. Release
+resources in `finally`, via `AbortController`, or with disposable resources.
 
-```ts
-Promise.all();
-```
+## Rule 13 — User-facing errors hide internals
 
-only when one failure should fail the entire operation.
-
-Use
+Show the user a clear, actionable, human-readable message. Log the technical
+details separately at the boundary (Rule 6).
 
 ```ts
-Promise.allSettled();
+// ❌ BAD — stack trace and internal path reach the UI
+setError(String(error));
+
+// ✅ GOOD
+console.error(`Failed to load repositories for ${userId}:`, error);
+setError('Could not load repositories. Try again later.');
 ```
 
-when partial success is acceptable.
+## Checklist
 
-## User-facing Errors
-
-Internal implementation details must never be exposed to users.
-
-Expose
-
-- clear
-- actionable
-- human-readable
-
-messages.
-
-Log the technical details separately.
-
-## Error Messages
-
-Error messages should explain
-
-- what failed,
-- why it failed,
-- and, when possible, how to resolve it.
-
-Avoid vague messages like
-
-- "Error"
-- "Failed"
-- "Something went wrong"
+- Throw `Error` subclasses only; messages name the subject and carry identifiers.
+- Wrapped errors keep `{ cause }`; no rethrow-only `try/catch`; no empty `catch`.
+- One log per failure, at the boundary; lower layers throw.
+- `error` / `warn` / `log` match intent; no secrets or personal data in messages.
+- Validate at the boundary and fail fast; domain errors where callers branch.
+- No `void` on promises; `.catch()` with context for fire-and-forget; `all` vs `allSettled` chosen deliberately.
+- Network calls have timeouts; resources are released in `finally` / `AbortController`.
+- Users see actionable copy, never internals.
