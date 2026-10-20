@@ -19,9 +19,6 @@ message implies developing or changing project/product behavior or a feature,
 **read this skill first** and run the full workflow below — **before** any
 `Write`, `Edit`, or `Delete` on product source files.
 
-When the **caller** already ran **create-branch** and returned issue context,
-use that payload in Step 1 (issue number, title, body, labels, branch name).
-
 Orchestrate implementation through **mandatory complexity triage** before any
 product code is written. Agent definitions live under `.cursor/agents/`.
 
@@ -150,9 +147,7 @@ Implement progress:
 
 ### Step 1 — Capture task brief
 
-From the user's request — and, when present, the **create-branch result** payload
-(`issue.body`, `issue.title`, `issue.labels`, `issue.url`, `branch.name`) —
-assemble:
+From the user's request assemble:
 
 - **Goal** — what should exist when done
 - **Acceptance criteria** — observable behaviors (infer reasonable defaults if
@@ -257,11 +252,11 @@ Wait for the executor to finish. Do not implement in the parent in parallel.
 
 Read `status` from the executor JSON.
 
-| Status                            | Parent action                                                                            |
-| --------------------------------- | ---------------------------------------------------------------------------------------- |
-| `done`                            | Proceed to Step 6                                                                        |
-| `escalated`                       | AskQuestion from `blockers`; relaunch Spark or Octopus only after the user chooses that |
-| missing JSON or invalid `status`  | Stop before Step 6. Ask whether to relaunch the executor. Do not infer `status`         |
+| Status                           | Parent action                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| `done`                           | Proceed to Step 6                                                                       |
+| `escalated`                      | AskQuestion from `blockers`; relaunch Spark or Octopus only after the user chooses that |
+| missing JSON or invalid `status` | Stop before Step 6. Ask whether to relaunch the executor. Do not infer `status`         |
 
 Never silently ignore escalation.
 
