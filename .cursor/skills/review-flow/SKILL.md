@@ -49,8 +49,8 @@ From git and conversation context, capture:
 - **Diff mode:** `uncommitted changes` (default) or `branch changes`
 - **Packages touched:** `client/`, `functions/`, `cli/`, `shared/`, config only, etc.
 - **Changed files** — `git diff --name-only` (+ `--cached` when uncommitted)
-- **Task brief** — goal + acceptance criteria (from implement Step 1/7 if present)
-- **Test routing** — `unit | e2e | both | none` from implement Step 6 if present
+- **Task brief** — goal + acceptance criteria (from the implement brief / summary if present)
+- **Test routing** — `unit | e2e | both | none` from the implement summary if present
 
 If the diff is empty, stop: "No changes to review."
 
@@ -90,7 +90,7 @@ For each changed source file (exclude tests, configs, types-only re-exports):
 1. Find colocated or mirrored tests: `*.spec.ts`, `*.spec.tsx`, `*.i.spec.ts`.
 2. For each new/changed **behavior** (branch, validation, error path, public API,
    hook return shape, HTTP status mapping), note whether a test asserts it.
-3. Cross-check implement Step 6 classification:
+3. Cross-check the implement test routing:
    - If **unit** was expected but no unit specs touch the behavior → gap.
    - If **e2e** was expected but no Playwright spec covers the journey → gap.
    - If **none** was chosen, confirm the change truly has no testable contract.
@@ -296,11 +296,11 @@ separate change.
 
 Typical sequence:
 
-1. User runs **implement** → product code + test writers → Step 7 summary.
+1. User runs **implement-flow** → product code + test writers → summary.
 2. User runs **review** (or parent auto-suggests it in follow-ups).
 3. User fixes findings → optional second review pass if requested.
 
-When launching review from implement, pass in the Step 7 summary block as task
+When launching review from implement, pass in the implement summary block as task
 context (goal, acceptance criteria, test classification, key paths).
 
 ---

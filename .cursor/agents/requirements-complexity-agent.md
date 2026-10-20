@@ -84,6 +84,18 @@ Score each dimension **Low / High**. Then apply the decision rule.
 - Recommend **`complex` → octopus** if **any** dimension scores **High**.
 - Recommend **`simple` → spark** if **all** dimensions score **Low**.
 
+## Test routing (part of the verdict)
+
+Pre-classify which tests the change will need. The parent confirms this against
+the real diff after implementation, so score from the stated scope:
+
+| Routing | When                                                                                            |
+| ------- | ----------------------------------------------------------------------------------------------- |
+| `none`  | Copy / layout with no branching and no observable contract; docs-only                           |
+| `unit`  | Testable logic in `client/`, `functions/`, `cli/`, `shared/` (hooks, stores, parsers, handlers) |
+| `e2e`   | User-visible flows in `client/` that need browser + emulator coverage                           |
+| `both`  | Both kinds of risk (typical for API + UI features)                                              |
+
 ## Escalation criteria
 
 Not every unknown deserves a question — most should just push the score
@@ -112,6 +124,7 @@ Complexity verdict: <1–3 bullets tied to the decision rule and evidence>
 **Packages in scope:** <client | functions | cli | shared | wiki | …>
 **Verdict:** <simple | complex>
 **Executor:** <spark | octopus>
+**Tests:** <unit | e2e | both | none> — <one-line reason>
 ```
 
 **Clarification** (≤3 questions; allowed whenever the deliverable is unnameable):
@@ -136,7 +149,8 @@ Triage is complete when one of these outcomes is reached:
    - the task can be restated as one concrete deliverable;
    - every dimension is scored via the rubric;
    - a single `Verdict` block names `simple → spark` or `complex → octopus`,
-     with each High score tied to a concrete path/package/requirement gap.
+     with each High score tied to a concrete path/package/requirement gap,
+     and a `Tests:` routing line with a one-line reason.
 
 2. **needs_clarification**
    - the task has no nameable deliverable;
