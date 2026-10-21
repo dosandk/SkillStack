@@ -15,10 +15,11 @@ interface RepoInfo {
   repoName: string;
   repoSlug: string;
   defaultBranch: string;
+  path?: string;
 }
 
 export const getRepoInfo = async (repoUrl: string): Promise<RepoInfo> => {
-  const { owner, repo } = parseRepoPath(repoUrl);
+  const { owner, repo, ref, path } = parseRepoPath(repoUrl);
 
   const repoDetails = await request<GithubRepoDetails>(
     `repos/${owner}/${repo}`,
@@ -29,6 +30,9 @@ export const getRepoInfo = async (repoUrl: string): Promise<RepoInfo> => {
     owner: repoDetails.owner.login,
     repoName: repoDetails.name,
     repoSlug: repoDetails.full_name,
-    defaultBranch: repoDetails.default_branch
+    // NOTE: a ref from a /tree/<ref>/<path> URL takes priority over the repo's actual
+    // default branch — the user explicitly asked for that branch.
+    defaultBranch: ref || repoDetails.default_branch,
+    path
   };
 };
