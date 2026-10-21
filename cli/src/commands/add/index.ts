@@ -9,7 +9,7 @@ export interface AddOptions {
 export const add = async (repoUrl: string, skills: string[] = []) => {
   try {
     const repoInfo = await githubService.getRepoInfo(repoUrl);
-    const { owner, repoName, repoSlug, defaultBranch } = repoInfo;
+    const { owner, repoName, repoSlug, defaultBranch, path } = repoInfo;
 
     const installData = await backendService.trackSkillsInstall({
       owner,
@@ -25,7 +25,8 @@ export const add = async (repoUrl: string, skills: string[] = []) => {
     const repoFiles = await githubService.getRepoFiles({
       owner,
       repoName,
-      defaultBranch
+      defaultBranch,
+      path
     });
 
     console.log('repoFiles', repoFiles);

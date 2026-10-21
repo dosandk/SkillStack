@@ -4,6 +4,7 @@ interface GetRepoFilesOptions {
   owner: string;
   repoName: string;
   defaultBranch: string;
+  path?: string;
 }
 
 interface RepoDownload {
@@ -90,14 +91,51 @@ async function getTree(
   return treeEntries;
 }
 
+// NOTE: resolves the tree SHA for a subdirectory by walking one path segment at a time —
+// the Git Trees API only exposes immediate children per request, there is no direct
+// "get tree by path" endpoint.
+async function resolveSubtreeSha(
+  owner: string,
+  repo: string,
+  ref: string,
+  path: string
+): Promise<string> {
+  const segments = path.split('/').filter(Boolean);
+
+  let currentSha = ref;
+
+  for (const segment of segments) {
+    const endpoint = `repos/${owner}/${repo}/git/trees/${encodeURIComponent(currentSha)}`;
+    const subtree = await request<GitTreeResponse>(endpoint, {});
+    const match = subtree.tree.find(
+      entry => entry.type === 'tree' && entry.path === segment
+    );
+
+    if (!match) {
+      throw new Error(
+        `Path "${path}" not found in ${owner}/${repo}@${ref}`
+      );
+    }
+
+    currentSha = match.sha;
+  }
+
+  return currentSha;
+}
+
 export async function getRepoFiles({
   owner,
   repoName,
-  defaultBranch
+  defaultBranch,
+  path
 }: GetRepoFilesOptions): Promise<RepoDownload> {
   console.log(`Repository: ${owner}/${repoName} (ref: ${defaultBranch})`);
 
-  const tree = await getTree(owner, repoName, defaultBranch);
+  const treeRoot = path
+    ? await resolveSubtreeSha(owner, repoName, defaultBranch, path)
+    : defaultBranch;
+
+  const tree = await getTree(owner, repoName, treeRoot);
 
   const dirs: string[] = [];
   const files: RepoFile[] = [];
