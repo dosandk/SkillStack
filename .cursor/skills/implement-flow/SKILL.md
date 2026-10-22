@@ -5,7 +5,7 @@ description: >-
   skill before Write/Edit/Delete on product source whenever the user wants to
   develop, change, add, fix, update, remove, refactor, configure, style, wire,
   or improve project behavior or a feature — including trivial one-line,
-  one-file, UI-only, config, test, CLI, functions, or product/architecture
+  one-file, UI-only, config, CLI, functions, or product/architecture
   docs-in-repo edits. Orchestrates requirements-complexity-agent triage, then
   spark (simple) or octopus (complex). Never implement product code in the
   parent without this workflow. Skip for pure Q&A, read-only review,
@@ -22,29 +22,29 @@ actually run the steps — it holds the step bodies, prompt templates, and examp
 
 The text below uses host-neutral names. Replace them with the host's tools:
 
-| Name in this skill | Cursor           |
-| ------------------ | ---------------- |
-| `ask-user`         | `AskQuestion`    |
-| `general subagent` | `generalPurpose` |
-| `todo list`        | `TodoWrite`      |
-| `config root`      | `.cursor/`       |
+| Name in this skill | Cursor           | Notes                                     |
+| ------------------ | ---------------- | ----------------------------------------- |
+| `ask-user`         | `AskQuestion`    | 2–4 options per question, max 3 questions |
+| `general subagent` | `generalPurpose` |                                           |
+| `todo list`        | `TodoWrite`      | tracks the progress checklist             |
+| `config root`      | `.cursor/`       |                                           |
 
 ## Agents
 
 Definitions live under `<config root>/agents/`.
 
-| Agent                           | Role                                                        |
-| ------------------------------- | ----------------------------------------------------------- |
-| `requirements-complexity-agent` | Triage only — verdict (with test routing) or clarification  |
-| `spark`                         | Simple, local implementation (product code only)            |
-| `octopus`                       | Complex, multi-component implementation (product code only) |
-| `unituna`                       | Unit tests, after the executor, only on a Yes               |
-| `e2eagle`                       | Playwright E2E tests, after the executor, only on a Yes     |
+| Agent                           | Role                                                |
+| ------------------------------- | --------------------------------------------------- |
+| `requirements-complexity-agent` | Triage: verdict with test routing, or clarification |
+| `spark`                         | Executor for `simple`                               |
+| `octopus`                       | Executor for `complex`                              |
+| `unituna`                       | Unit-test writer (Step 5)                           |
+| `e2eagle`                       | Playwright E2E writer (Step 5)                      |
 
 ## Gate
 
 Applies when the request develops or changes product behaviour in `client/`,
-`functions/`, `cli/`, `shared/`, `e2e/`, `wiki/`, or root config that affects the
+`functions/`, `cli/`, `shared/`, `wiki/`, or root config that affects the
 product. Treat as **yes** even when the user:
 
 - describes the change indirectly ("make it nicer", "this is broken");
@@ -54,31 +54,33 @@ product. Treat as **yes** even when the user:
 - asks to revert or roll back earlier product edits.
 
 **Skip** only when the user clearly wants no file changes, when `review-flow`,
-`git-commit`, or `update-adr` fits instead, when implement is already mid-flight
+`git-commit`, or `update-adr` fits instead, when the request is only about tests
+(a dedicated test skill applies), when implement is already mid-flight
 for the same task, or when only agent config under the config root changes (edit those
 files directly). A question that ends in "fix it" is not a skip. If unsure, ask
 one clarifying question before editing anything.
 
 ## Hard rules
 
-1. **Triage before code.** No parent `Write` / `Edit` / `Delete` on product source
-   until a verdict exists. The verdict comes from the triage subagent, or from the
-   inline fast path when all four of its conditions hold (reference.md, Step 2).
-   Even on the fast path the executor writes the code, not the parent.
-2. **One executor, matched to the verdict.** `simple` → `spark`, `complex` →
-   `octopus`. Never both, never in parallel, never without a verdict.
-3. **Executors never write tests or ADRs.** Writers and the ADR task run only
-   after a Yes in Step 4, one subagent at a time.
-4. **Clarification cap.** `NEEDS_CLARIFICATION` may appear at most 3 times. On the
-   3rd, do not ask again and do not launch an executor — summarize as blocked.
-5. **Escalation is never silent.** `escalated` → `ask-user` built from `blockers`;
-   any other non-`done` result is treated the same. Relaunch the executor only if
-   the user picks that. Do not re-run triage.
-6. **No commit or push** unless the user explicitly asked.
+Each rule is an invariant. The named step in reference.md holds the mechanics.
+
+1. **Verdict before code** (Step 2). No parent `Write` / `Edit` / `Delete` on
+   product source until a verdict exists, from the triage subagent or the inline
+   fast path. The executor writes the code, never the parent.
+2. **One executor per verdict** (Step 3). Never two at once, never without a
+   verdict. A relaunch after escalation reuses the same verdict.
+3. **Executors never write tests or ADRs** (Steps 4–6). Tests are written only
+   as part of a feature implementation, by the writers, after an explicit Yes,
+   one subagent at a time.
+4. **Clarification cap is 3** (Step 2c). The third `NEEDS_CLARIFICATION` ends the
+   flow as blocked. The count persists across re-triage within the same task.
+5. **Escalation is never silent** (Step 3). The user decides relaunch or stop.
+6. **No commit or push** unless the user explicitly asked, and never before
+   Step 7.
 
 ## Progress checklist
 
-Copy and track:
+Copy into the `todo list` and track:
 
 ```
 Implement progress:

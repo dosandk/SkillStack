@@ -17,19 +17,18 @@ Keep it short; triage scores what is stated plus repo evidence.
 
 ## Step 2 — Triage
 
-### 2a — Inline fast path (skip the subagent)
+### 2a — Inline fast path
 
-Skip the triage subagent **only** when every condition holds:
+Skip the triage subagent only when all of these hold. Otherwise, or if unsure,
+run 2b.
 
 1. The user names the exact file to change.
 2. The change stays in that one file, in one package.
 3. No exported signature, schema, Firestore shape, or API contract changes.
 4. No new dependency.
 
-The fast path always routes to `spark`; there is nothing to decide. If you think
-`octopus` is needed, one of the conditions does not hold — run 2b instead.
-
-Then record the verdict yourself and go to Step 3:
+The fast path always means `simple` → `spark`. Record the verdict yourself and go
+to Step 3:
 
 ```markdown
 **Task:** <one-line restatement>
@@ -38,8 +37,6 @@ Then record the verdict yourself and go to Step 3:
 **Executor:** spark
 **Tests:** <unit | e2e | both | none> — <one-line reason>
 ```
-
-If any condition fails, or you are unsure, run 2b.
 
 ### 2b — Triage subagent
 
@@ -67,13 +64,11 @@ missing path, fix and retry once; then stop and report.
 
 Triage returns exactly one block:
 
-| Block                 | Parent action                                                                                                                                                                                |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEEDS_CLARIFICATION` | Count it. On the 3rd → Step 7 as blocked. Otherwise `ask-user` with its questions (2–4 options each, max 3). If the user declines → Step 7 without implementing. Else re-run 2b with answers |
-| Verdict               | Capture the whole block: `Verdict`, `Executor`, `Tests`, packages, scope sketch                                                                                                              |
-| Neither               | Re-run 2b once with "Return exactly one Complexity verdict or NEEDS_CLARIFICATION block". If still malformed → Step 7 as blocked                                                             |
-
-Re-run triage also when the user materially changes requirements mid-task.
+| Block                 | Parent action                                                                                                                                                      |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `NEEDS_CLARIFICATION` | Count it. On the 3rd → Step 7 as blocked. Otherwise `ask-user` with its questions. If the user declines → Step 7 without implementing. Else re-run 2b with answers |
+| Verdict               | Capture the whole block: `Verdict`, `Executor`, `Tests`, packages, scope sketch                                                                                    |
+| Neither               | Re-run 2b once with "Return exactly one Complexity verdict or NEEDS_CLARIFICATION block". If still malformed → Step 7 as blocked                                   |
 
 ## Step 3 — Executor
 
@@ -98,17 +93,21 @@ Full Repository Path: <absolute workspace path>
 Do not add or update tests — the parent decides on tests and ADRs after you finish.
 ```
 
-Wait for it. Do not implement in the parent in parallel.
+Wait for it. The parent neither implements alongside it nor launches a second
+executor.
 
 ### Outcome
 
 Read `status` from the executor JSON.
 
-| `status`      | Parent action                                                                                                   |
-| ------------- | --------------------------------------------------------------------------------------------------------------- |
-| `done`        | Step 4                                                                                                          |
-| `escalated`   | `ask-user` with 2–4 options built from `blockers` (`blocker`, `neededFromParent`). Relaunch only on that choice |
-| anything else | Treat as `escalated` without `blockers`: `ask-user` to relaunch or stop                                         |
+| `status`      | Parent action                                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------- |
+| `done`        | Step 4                                                                                                      |
+| `escalated`   | `ask-user` with options built from `blockers` (`blocker`, `neededFromParent`). Relaunch only on that choice |
+| anything else | Treat as `escalated` without `blockers`: `ask-user` to relaunch or stop                                     |
+
+An escalation is a Step 3 decision. Do not re-run triage for it; re-triage only
+when the user materially changes requirements mid-task.
 
 ## Step 4 — Confirm tests and ADRs
 
@@ -212,7 +211,7 @@ Checks: {{checks}}
 
 ADRs: <files written | skipped — user declined | no candidates>
 
-Follow-ups: what still needs a person — manual verification, or a commit when the user asked for one
+Follow-ups: what still needs a person — manual verification; a commit, only when the user asked for one, comes after this summary
 ```
 
 Do not paste the executor JSON unless the user asks. When the flow stopped early
@@ -220,16 +219,26 @@ Do not paste the executor JSON unless the user asks. When the flow stopped early
 
 ## Examples
 
-### Simple label fix, named file (fast path)
+### Named file, fast path (spark without triage)
 
 1. User: "In `client/src/components/RepositoryList/RepositoryList.tsx` change the
    empty-state text to 'No repositories yet'"
-2. All four fast-path conditions hold → inline verdict `simple (inline)`, `Tests: none`
+2. All four 2a conditions hold → inline verdict `simple (inline)`, `Tests: none`
 3. `spark` implements
 4. `none` + no candidates → no `ask-user`
 5. Summary
 
-### New API + client feature with ADR candidates
+### Small helper, triage → spark
+
+1. User: "Add a `parseShareToken` helper in `shared/`"
+2. No file named → 2a fails → triage subagent → `simple`, `spark`, `Tests: unit`
+3. `spark` implements
+4. Parent confirms `unit` against the diff; no candidates → one `ask-user` with
+   the tests question only
+5. On Yes: `unituna`
+6. Summary
+
+### New API + client feature, triage → octopus with ADR candidates
 
 1. User: "Add install tracking endpoint and show count in the UI"
 2. Triage → `complex`, `octopus`, `Tests: both`
@@ -237,10 +246,3 @@ Do not paste the executor JSON unless the user asks. When the flow stopped early
 4. Parent confirms `both` against the diff → one `ask-user` with two questions
 5. On Yes/Yes: `unituna`, then `e2eagle`, then the ADR task
 6. Summary lists both writers' outcomes and the ADR file
-
-### Ambiguous request
-
-1. User: "Make repositories better"
-2. Triage → `NEEDS_CLARIFICATION` (1 of 3) → `ask-user` → re-run with answers
-3. Verdict on the 2nd run → executor → Step 4 → summary. On a 3rd
-   `NEEDS_CLARIFICATION` → summary as blocked, no executor
