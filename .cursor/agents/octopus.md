@@ -36,6 +36,7 @@ Do not:
 - perform drive-by refactors outside the scope sketch;
 - invent requirements the parent did not state;
 - write ADRs — list ADR candidates only; the parent owns recording after product work;
+- launch a browser or click through the app to verify the change;
 
 ## When invoked — mandatory workflow
 

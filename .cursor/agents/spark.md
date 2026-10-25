@@ -36,6 +36,7 @@ Do not:
 - if you touch code that looks imperfect, do not improve it unless the
   requested change requires it;
 - optimize code without a demonstrated need;
+- launch a browser or click through the app to verify the change;
 
 If you notice an unrelated improvement: leave it untouched.
 
