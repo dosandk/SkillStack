@@ -1,0 +1,48 @@
+---
+description: YAGNI — build only what the current task needs; no speculative abstractions, options, or dead code
+applyTo: "**/*.{ts,tsx,js,jsx}"
+---
+
+# YAGNI (You Aren't Gonna Need It)
+
+Write the simplest code that satisfies the **current** requirement. Do not build
+for a future that has not been asked for.
+
+## Do not add
+
+- Parameters, options, flags, or config that no caller uses yet.
+- Abstractions (base classes, factories, generic wrappers, plugin points) with a
+  single implementation.
+- Extra layers, helpers, or types that only forward to one other function.
+- Fallbacks and error handling for states that cannot happen inside the project.
+- Commented-out code, unused exports, or "just in case" branches.
+
+## Prefer
+
+- Inline a one-off helper instead of extracting it. Extract when a second real
+  use appears (rule of three for abstractions; duplication of two is fine).
+- Concrete code first; generalise only when a real second case forces it.
+- Reusing an existing project utility over writing a new one.
+- Deleting code that is no longer used instead of keeping it "for later".
+
+## Scope
+
+- Change only what the task requires. Note unrelated improvements in the PR
+  description or as a task; do not mix them into the diff.
+- If a requirement is ambiguous, ask — do not cover every interpretation.
+
+## Example
+
+```ts
+// Bad: option and interface nobody asked for
+interface Formatter { format(name: string): string }
+function greet(name: string, formatter: Formatter = defaultFormatter, upper = false) {
+  const text = formatter.format(name);
+  return upper ? text.toUpperCase() : text;
+}
+
+// Good: exactly what the caller needs today
+function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
