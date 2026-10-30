@@ -1,0 +1,74 @@
+---
+description: Keep it simple (YAGNI) — build only what the task needs; no speculative options, abstractions, or extension points
+globs: '**/*.{ts,tsx}'
+alwaysApply: false
+---
+
+# Keep it simple (YAGNI)
+
+Write the simplest code that satisfies the task and its tests. Code added "just in
+case" is read, tested, and maintained like any other code, but earns nothing until a
+real caller exists. If a change needs a sentence that starts with "in case we later…",
+leave that part out.
+
+## Build for today's callers
+
+Add a parameter, option, flag, config key, or abstraction only when a caller in the
+codebase needs it **now**. Write follow-up ideas in the PR description or an issue
+instead of coding them.
+
+```ts
+// ❌ BAD — options and locale handling nobody asked for
+export function formatSkillName(
+  name: string,
+  options: { uppercase?: boolean; maxLength?: number; locale?: string } = {}
+): string {
+  const { uppercase = false, maxLength = Infinity, locale = 'en' } = options;
+  const trimmed = name.trim().slice(0, maxLength);
+  return uppercase ? trimmed.toLocaleUpperCase(locale) : trimmed.toLocaleLowerCase(locale);
+}
+
+// ✅ GOOD — exactly what the callers need today
+export const formatSkillName = (name: string): string => name.trim().toLowerCase();
+```
+
+## No abstraction before the third use
+
+- **One use** — write it inline.
+- **Two similar uses** — a little duplication is fine; the shared shape is still a guess.
+- **Third use**, or two copies that must always change together — extract it. Use
+  `check-duplicates` to find them.
+
+```ts
+// ❌ BAD — interface, class, and factory for the only implementation
+interface SkillParser {
+  parse(raw: string): Skill;
+}
+class MarkdownSkillParser implements SkillParser {
+  parse(raw: string): Skill {
+    return parseFrontmatter(raw);
+  }
+}
+export const createSkillParser = (): SkillParser => new MarkdownSkillParser();
+
+// ✅ GOOD — a function until a second implementation exists
+export const parseSkill = (raw: string): Skill => parseFrontmatter(raw);
+```
+
+## Leave nothing speculative behind
+
+- No unused exports, parameters, branches, or feature flags.
+- Delete code instead of commenting it out — git keeps the history.
+- No defensive branches for states the types already rule out.
+- Prefer a library or platform feature the repo already uses over a new dependency or
+  a hand-rolled utility.
+- Do not widen the diff: cleanups unrelated to the task go in a separate, focused
+  change.
+
+## Quick check before adding code
+
+1. Does the task or a failing test require this?
+2. Does a caller exist today?
+3. Would a simpler version pass the same tests?
+
+If any answer is no, leave it out.
