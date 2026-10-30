@@ -29,6 +29,7 @@ in four other places**. Adding or renaming an alias means editing every entry be
 
 Current aliases: `@shared`, `@eleks-ui/components`, `@eleks-ui/theme`.
 Import ordering rules: `.cursor/rules/js-import-order.mdc`.
+KISS: `.cursor/rules/kiss.mdc` (always applied).
 UI import rules and MCP workflow: `.cursor/skills/use-eleks-ui/SKILL.md`.
 
 ## Firebase backend specifics

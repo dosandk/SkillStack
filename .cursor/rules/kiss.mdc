@@ -1,0 +1,39 @@
+---
+description: KISS — simplest design that works; keep functions small, flat, and free of one-off abstractions
+alwaysApply: true
+---
+
+# KISS
+
+Keep it simple. Write the smallest design that meets the requirement. Add a branch, helper, or abstraction only when the straight-line version is unclear.
+
+- One function, one job, early returns.
+- A few duplicated lines beat a helper with one caller.
+- Use what the repo already depends on. No new library for a one-off.
+- Flatten or split when a limit below fires. Do not disable this rule to land a change.
+
+## Limits
+
+- Cyclomatic complexity ≤ 10
+- Cognitive complexity ≤ 15
+- Block nesting ≤ 3
+- Nested callbacks ≤ 3
+- Parameters ≤ 4
+- Function length ≤ 80 lines, ignoring blanks and comments. Specs and e2e tests skip the line cap only.
+
+```ts
+// ❌ BAD — flags and nesting for a single read
+function load(id: string, opts: { retry?: boolean; cache?: boolean }) {
+  if (opts.retry) {
+    if (opts.cache) return readCached(id);
+  }
+  return read(id);
+}
+
+// ✅ GOOD
+async function loadRepository(id: string) {
+  const snapshot = await collection().doc(id).get();
+  if (!snapshot.exists) return null;
+  return { id: snapshot.id, ...snapshot.data() };
+}
+```
