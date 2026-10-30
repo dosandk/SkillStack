@@ -1,0 +1,59 @@
+---
+description: React client-side folder structure team conventions. Apply when creating new files. This rule MUST be updated every week with the team agreement.
+globs: client/src/**/*.ts, client/src/**/*.tsx
+alwaysApply: false
+---
+
+# Feature-based folder structure
+
+- Organize feature-specific code together under `pages/<feature>/`.
+- Keep components, hooks, tests, types, constants, enums, fakes, mocks and utilities inside their owning feature unless they have demonstrated cross-feature reuse. 
+- Place reusable UI and hooks in `common/components/` and `common/hooks/`; place shared pure helpers in `common/utils/` and app-wide constants in `common/constants/`. 
+The same logic MUST be done for other types of folders: mocks, fakes, interfaces, types, constants, etc.
+- Within a feature, use `components/` for smaller feature-only UI components and `hooks/` for feature-specific hooks. Avoid unnecessary nesting; usually no more than ~3 levels below the feature root.
+- Keep external integration setup in `config/` (for example, analytics, Firebase, or GraphQL client providers).
+- Ignore files in `client/src/components/eleks-ui` since it is a separate lib.
+
+# Tests
+
+- Place tests alongside the owning component. Keep mocks and fakes for tests in the appropriate folder.
+
+## Preferable layout:
+
+```text
+client/src/
+├── common/
+│   ├── components/
+│   ├── hooks/
+│   ├── types/
+│   ├── utils/
+│   ├── constants/
+│   ├── interfaces/
+│   └── ...
+├── config/
+└── pages/
+    └── RepositoriesList/
+        ├── components/
+        │   └── RepositoryListItem/
+        │       ├── RepositoryListItem.test.tsx
+        │       ├── RepositoryListItem.tsx
+        ├── hooks/
+        │   └── useRepositories.ts
+        ├── constants/
+        │   └── RepositoriesList.ts
+        ├── utils/
+        │   └── RepositoriesList.ts
+        ├── mocks/
+        │   └── RepositoriesList.ts
+        ├── fakes/
+        │   └── RepositoriesList.ts
+        ├── ...
+        ├── RepositoriesList.test.tsx
+        ├── RepositoriesList.tsx
+        └── index.ts
+    └── ...
+```
+
+# Before finishing a client-code change, verify:
+1. Is each file located with the feature that owns it?
+2. Can you easily find the new file and related files looking into the structure?
