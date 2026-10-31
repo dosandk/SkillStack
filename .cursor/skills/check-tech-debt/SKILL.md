@@ -120,13 +120,15 @@ Then ask which items to apply, which to turn into issues, and which to drop.
 For the items the user approved:
 
 1. Make one focused change at a time and run the tests that cover it.
-2. Commit each change separately with a Conventional Commit message (`refactor:`,
-   `test:`, or `chore:`); use the `git-commit` skill if available. Follow
-   `contributing.md` for branch naming and pull requests.
+2. Commit each change separately, using the project's commit-message convention
+   (check the commitlint config, `contributing.md`, or a `git-commit` skill if one
+   exists; allowed types and header length differ between projects). Follow the
+   project's contribution guide for branch naming and pull requests.
 3. For "schedule" items the user approved, create the issues as drafted, then replace
-   the old marker with a `NOTE:` comment that links the issue, following the project's
+   the old marker with a comment that links the issue, following the project's
    comment conventions.
-4. For "accept" items, leave a `NOTE:` comment with the reason where the debt lives.
+4. For "accept" items, leave a short comment with the reason where the debt lives,
+   following the same conventions.
 
 Finish with a short summary: what was fixed, what was filed, what was accepted, and
 anything skipped.
