@@ -31,6 +31,15 @@ Current aliases: `@shared`, `@eleks-ui/components`, `@eleks-ui/theme`.
 Import ordering rules: `.cursor/rules/js-import-order.mdc`.
 UI import rules and MCP workflow: `.cursor/skills/use-eleks-ui/SKILL.md`.
 
+## Code quality
+
+- **Consistency:** match the surrounding code's patterns, tooling and conventions, and reuse
+  existing helpers and libraries instead of adding a second way. Rule with examples:
+  `.cursor/rules/code-consistency.mdc`.
+- **Tech-debt triage:** find markers, suppressions, skipped tests and hotspots, rank them, and
+  decide pay now / schedule / accept: `.cursor/skills/check-tech-debt/SKILL.md`. This skill is
+  also linked from `.agents/skills/` and `.claude/skills/` (symlinks) so other agents find it.
+
 ## Firebase backend specifics
 
 - `functions/src/index.ts` is the **only** file that exports Firebase entry points. It calls
