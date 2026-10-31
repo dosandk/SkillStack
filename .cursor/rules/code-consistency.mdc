@@ -1,0 +1,81 @@
+---
+description: Code consistency — match the surrounding code's patterns, tooling and conventions; no second way to solve a problem the repo already solves
+globs: '**/*.{ts,tsx,js,jsx}'
+alwaysApply: false
+---
+
+# Code consistency
+
+Readers skim code by pattern. When similar things look and work alike, the next person
+understands a new file in seconds; when one module does something differently, every
+reader has to stop and ask whether the difference matters. Match what is already there.
+Change a convention on purpose, in its own change — never by drift.
+
+## Look before you write
+
+Before adding code to a module, open two or three sibling files of the same kind (same
+folder, same role: handler, component, store, spec) and copy their shape: file layout,
+export style, ordering, error handling, how they are tested. Search for an existing
+helper before writing one — cross-package utilities live in `shared/` (import via `@shared`).
+
+```ts
+// ❌ BAD — a new handler in its own style: inline Firestore access, console.log, ad-hoc response
+export const apiRemoveRepo = onRequest(async (request, response) => {
+  const doc = await getFirestore().collection('repositories').doc(request.body.id).get();
+  if (!doc.exists) {
+    response.json({ ok: false });
+    return;
+  }
+  console.log('removing', doc.id);
+  await doc.ref.delete();
+  response.json({ ok: true });
+});
+
+// ✅ GOOD — same shape as the sibling handlers: thin handler → domain function → store
+export const apiRemoveRepo = onRequest({ invoker: 'public' }, async (request, response) => {
+  try {
+    await removeRepo(request.body);
+    response.status(204).send();
+  } catch (error) {
+    logError('Failed to remove repository', { error });
+    response.status(400).send({ error: 'Invalid repository payload' });
+  }
+});
+```
+
+## One way per problem
+
+Use what the project already uses before adding something new: its validation library,
+test runner, path aliases, logging helper, and error style. A new dependency or pattern
+needs a reason the existing one cannot meet; state it in the PR description.
+
+```ts
+// ❌ BAD — a second way to validate input next to the schema pattern used elsewhere
+if (typeof input.name !== 'string' || input.name === '') throw new Error('bad name');
+
+// ✅ GOOD — the boundary pattern the repo already uses
+const item = itemSchema.parse(input);
+```
+
+## Let the tools format
+
+Formatting is decided by `.prettierrc` and `.editorconfig`, and lint rules by
+`eslint.config.js`. Run the formatter instead of hand-formatting, and do not reformat
+lines you did not change: incidental reformatting buries the real change in the diff.
+
+## Existing conventions win until changed on purpose
+
+If an existing pattern looks wrong, do not mix a "better" one into one corner of the
+code. Either follow the current pattern, or propose changing it for the whole area as a
+separate, focused change (record architectural choices as an ADR in
+`wiki/architectural-decision-records/`). A consistent imperfect module is easier to
+fix later than a patchwork of styles. If the neighbors disagree with each other, follow
+the most widely used pattern and mention the inconsistency.
+
+## Quick check before finishing
+
+1. Does the new code look like its neighbors?
+2. Did I reuse the existing helper, library and alias instead of adding another?
+3. Does the diff contain only lines I meant to change?
+
+If any answer is no, fix it before you hand the change over.
