@@ -2,280 +2,201 @@
 name: implement-issue
 description: >-
   Orchestrates the SkillStack delivery pipeline for one GitHub issue:
-  issue-spec-writer → implementation-planner → tdd-test-writer →
-  tdd-implementer → code-reviewer, with feedback loops between stages, human
-  gates, loop budgets and a run log. Use when the user runs /implement-issue
-  with an issue number, asks to take an issue (e.g. "#42") through spec, plan,
-  tests, implementation and review end to end, or asks to resume such a run.
+  spec-writer → plan-writer → test-writer → implementor → reviewer, with
+  feedback loops, human gates, loop budgets and a run log. Use when the user
+  runs /implement-issue with an issue number, asks to take an issue (e.g.
+  "#42") through spec, plan, tests, implementation and review end to end, or
+  asks to resume such a run.
 disable-model-invocation: true
 ---
 
 # Implement Issue (pipeline orchestrator)
 
-You are the orchestrator. You run in the **main chat**, not as a subagent:
-the five stage agents are subagents, and only the main chat can stop and ask
-the human at a gate. You launch each stage with the Task tool
-(`subagent_type` = the agent name), read its final report, decide the next
-step, and keep the run log. The agents do all the content work.
+You are the orchestrator, and you run in the main chat: only the main chat can
+ask the human. You launch each stage agent with the Task tool
+(`subagent_type` = the agent name), read its report, route the next step, and
+keep the run log. First read `.cursor/skills/pipeline-protocol/SKILL.md`: it
+defines the issue folder, the artifact header, IDs, gaps, feedback, commits and
+the stage report you parse.
 
 ```
-#N ─► issue-spec-writer ─► wiki/specs/<name>
-          ▲ spec gaps G-n            │
-          └──── implementation-planner ─► wiki/plans/<name>
-                     ▲ plan gaps P-n             │
-                     └──── tdd-test-writer ─► red tests + wiki/tests/<name>
-                                ▲ gaps IG-n (tests / plan)      │
-                                └──── tdd-implementer ─► code + wiki/implementations/<name>
-                                                                │
-                                          code-reviewer ◄───────┘
-                                                │ verdict + findings R-n
-                                                ▼
-                     wiki/reviews/<name> (saved by you); findings routed to
-                     spec / plan / tests / code, downstream stages re-run
+issue #n
+  │
+  ▼
+spec-writer ──► spec.md ◄─────────────────── human decisions, R-n
+  │
+  ▼
+plan-writer ──► plan.md ◄─────────────────── TG / IG gaps, R-n, human direction
+  │   (blocking PG gaps ──► design gate)
+  ▼
+test-writer ──► red tests + tests.md ◄────── IG gaps, R-n
+  │
+  ▼
+implementor ──► code + implementation.md ◄── R-n
+  │
+  ▼
+reviewer ─────► review.md ── approve ──► finish
 ```
-
-All artifacts of one issue share one file name, `<name>` = `<n>-<slug>.md`.
-Your own file is the run log, `wiki/runs/<name>`.
 
 ## Invocation
 
 `/implement-issue <number> [key=value ...]`
 
-| Option | Values | Default | Effect |
-| ------ | ------ | ------- | ------ |
-| `mode` | `guided`, `auto` | `guided` | `guided`: design gate after the plan and a final gate. `auto`: no routine gates; escalations still stop and ask. |
-| `verification` | `unit`, `full` | `unit` | Passed to `tdd-test-writer` and `tdd-implementer`. `full` also runs integration and e2e suites under the emulators. |
-| `commit` | `none`, `per-task` | `none` | Passed to `tdd-implementer`. |
-| `from` | `spec`, `plan`, `tests`, `implement`, `review` | detected | Force the stage to start from when resuming. |
-| `review-model` | a model slug | `inherit` | Run `code-reviewer` on a different model for a more independent review. |
+| Option         | Values                                         | Default  | Effect                                                                                                    |
+| -------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------- |
+| `mode`         | `guided`, `auto`                               | `guided` | `guided`: design gate after the plan, and a final gate. `auto`: only blocking gaps and escalations stop the run. |
+| `verification` | `unit`, `full`                                 | `unit`   | Passed to test-writer and implementor. `full` also runs the integration and e2e suites under the emulators. |
+| `commit`       | `none`, `per-task`                             | `none`   | Passed to implementor.                                                                                    |
+| `from`         | `spec`, `plan`, `tests`, `implement`, `review` | detected | The stage to start from when resuming.                                                                    |
 
 If no issue number is given, ask for it.
 
-## Orchestrator rules
+## Rules
 
-- **Delegate all content work.** Never write or edit a spec, plan, test,
-  production file or implementation report, not even a one-line fix. Route
-  the problem to the agent that owns the artifact. You write only the run log,
-  the saved review, and, after approval at the final gate, commits and the PR.
-- **One stage at a time, in the foreground** (`run_in_background: false`).
-  Every stage edits the same working tree and needs the previous output.
-- **A fresh subagent for every run; never `resume`.** The artifacts on disk
-  are the handoff, and every agent revises them in place, so a fresh run
-  sees the latest state without carrying stale context.
-- **Self-contained prompts.** Subagents do not see this chat. Build every
-  prompt from the templates in [reference.md](reference.md).
-- **Parse the report header** (`Status:`, `Next:`, gap counts). If it is
-  missing or malformed, read the `Status` field of the artifact the agent
-  owns; if that is still unclear, treat the stage as `failed`.
-- **Revisions are the versions.** Every artifact has a `Revision` field, and
-  downstream artifacts record the upstream revision they were built from
-  (`Spec version: r3`). Compare those numbers, not dates.
-- **Re-run downstream after every upstream change.** When a spec, plan or
-  manifest gets a new revision, every later stage must run again, even if it
-  succeeded before.
-- **Keep your context lean.** Read artifact headers and the sections a
-  decision needs (open questions, gaps, task titles, findings), not whole
-  files.
-- **Report progress.** After every stage, append a row to the run log and tell
-  the user in one sentence which stage ran, its status, and what runs next.
-- Never push, open a PR, deploy, use `--no-verify`, or stash, reset or discard
-  changes unless the human approves it at the final gate.
+- **Delegate all content work.** Never write or edit a stage artifact, a test
+  or a production file, not even a one-line fix: route the problem to the
+  stage that owns it. You write only `run.md`, and after approval at the final
+  gate, commits and the PR.
+- **One stage at a time, in the foreground** (`run_in_background: false`), in
+  a **fresh subagent every time; never `resume`**. The issue folder is the
+  handoff.
+- **Prompts** follow the template in [reference.md](reference.md); subagents do
+  not see this chat.
+- **Parse the report.** If it is missing or malformed, read the `Status` of the
+  stage's artifact; if that is still unclear, treat the stage as `failed`.
+- **Re-run later stages only when an upstream `Revision` changed**: compare
+  each artifact's **Built from** with the current revisions. A stage that
+  leaves its revision unchanged does not trigger the stages after it.
+- **Keep your context lean.** Read artifact headers and the sections a decision
+  needs (open questions, gaps, task titles, findings), not whole files.
+- **Report progress.** After every stage, add a row to the run log and tell the
+  user in one sentence what ran, its status, and what runs next.
+- Push, open a PR, stash, reset or discard changes only with approval at the
+  final gate; never use `--no-verify`.
 
 ## Workflow
 
 ```
 - [ ] 0. Preflight
-- [ ] 1. Spec
-- [ ] 2. Plan (spec ↔ plan loop)
-- [ ] 3. Design gate
-- [ ] 4. Tests (tests → plan loop)
-- [ ] 5. Implementation (implementation → tests / plan loop)
-- [ ] 6. Review (review fix loop)
-- [ ] 7. Finish
+- [ ] 1. Run the stages by the routing table
+- [ ] 2. Design gate, whenever routing reaches it
+- [ ] 3. Finish
 ```
 
 ### 0. Preflight
 
-1. `gh auth status`, then
-   `gh issue view <n> --json number,title,state,labels,url`. Stop if either
-   fails. If the issue is closed, say so; in `guided` mode ask whether to
-   continue.
-2. Check that `.cursor/agents/` contains `issue-spec-writer.md`,
-   `implementation-planner.md`, `tdd-test-writer.md`, `tdd-implementer.md`
-   and `code-reviewer.md`. Stop if any is missing.
-3. **Name.** If `wiki/specs/<n>-*.md` exists, reuse its file name. Otherwise
-   `<name>` = `<n>-<slug>.md`, where `<slug>` is the issue title in lowercase,
+1. `gh auth status`, then `gh issue view <n> --json number,title,state,labels,url`;
+   stop if either fails. If the issue is closed, say so; in `guided` mode ask
+   whether to continue.
+2. **Folder.** Reuse `wiki/issues/<n>-*/` if it exists. Otherwise use
+   `wiki/issues/<n>-<slug>/`, where `<slug>` is the issue title in lowercase,
    every run of characters outside `a-z0-9` replaced by `-`, trimmed of `-`,
-   cut to 50 characters, with no trailing `-`.
-4. **Working tree.** Run `git status --porcelain`. The run owns this issue's
-   `wiki/` artifacts and, when resuming, the files listed in its manifest
-   (**Test files**) and report (**Changed files**). If anything else is
-   dirty, stop and ask the user to commit or stash it themselves.
-5. **Resume.** If any artifact of this issue exists, see **Resume** below.
-6. **Branch.**
-   - If the current branch name contains `/<n>-`, stay on it.
-   - Otherwise follow `contributing.md`: type `hotfix` and base `origin/main`
-     when the issue has the `hotfix` label, else type `feature` and base
-     `origin/develop`. Run `git fetch origin`.
-   - The base must already contain the pipeline:
-     `git cat-file -e <base>:.cursor/skills/implement-issue/SKILL.md`. If it
-     does not, a branch from it would lose the agents in the middle of the
-     run. In `guided` mode ask: branch from the current HEAD, stay on the
-     current branch, or stop. In `auto` mode branch from the current HEAD and
-     note it in the run log.
-   - `git switch -c <type>/<name without .md> <base>`, or `git switch` to it
-     if it exists.
-7. **Base.** Record `git rev-parse HEAD` as `Base`. The reviewer diffs against
-   it, so only this run's changes are reviewed. On resume, reuse the `Base`
-   from the run log.
-8. Create the run log from the template in [reference.md](reference.md).
+   and cut to 50 characters without a trailing `-`.
+3. **Working tree.** Run `git status --porcelain`. The run owns the issue
+   folder and, when resuming, the files in the **Test files** of `tests.md` and
+   the **Changed files** of `implementation.md`. If anything else is dirty,
+   stop and ask the user to commit or stash it.
+4. **Resume.** If the folder already has artifacts, see **Resume**.
+5. **Branch.** Stay on the current branch if its name contains `/<n>-`.
+   Otherwise follow `contributing.md`: `hotfix/` from `origin/main` for an
+   issue labeled `hotfix`, else `feature/` from `origin/develop`. Run
+   `git fetch origin`, then `git switch -c <type>/<n>-<slug> <base>`, or
+   `git switch` to the branch if it exists.
+6. **Base.** Record `git rev-parse HEAD` as `Base`; on resume, reuse the one in
+   `run.md`. The reviewer reviews only the changes since `Base`.
+7. Create `run.md` from the template in [reference.md](reference.md).
 
 ### Resume
 
-Start from the first stage whose output is missing or unusable:
+Start from the first stage whose artifact is missing or unusable:
 
-| Stage | Run it when |
-| ----- | ----------- |
-| Spec | no spec |
-| Plan | no plan; plan `Status: Blocked`; plan `Spec version` ≠ spec `Revision` |
-| Tests | no manifest; manifest `Status: Needs plan update`; its `Plan version` or `Spec version` is stale |
-| Implement | no report; report `Status` is not `Green`; any of its version fields is stale |
-| Review | everything above is current |
+| Stage     | Run it when                                                                  |
+| --------- | ---------------------------------------------------------------------------- |
+| Spec      | no `spec.md`                                                                 |
+| Plan      | no `plan.md`; `Status: Blocked`; built from an older spec revision           |
+| Tests     | no `tests.md`; `Status: Needs plan update`; built from older revisions       |
+| Implement | no `implementation.md`; `Status` is not `Green`; built from older revisions  |
+| Review    | everything above is current                                                  |
 
 In `guided` mode, confirm with AskQuestion: resume from the detected stage,
 restart from the spec, or stop. `from=` overrides the detection. A restart
-deletes nothing; the agents revise the artifacts in place.
+deletes nothing; the agents revise their artifacts in place.
 
-### 1. Spec
+### 1. Routing
 
-Run `issue-spec-writer` (prompt **S1**).
+| Stage       | Status                | Next                                                                                              |
+| ----------- | --------------------- | ------------------------------------------------------------------------------------------------- |
+| spec-writer | `success`             | plan-writer                                                                                       |
+| plan-writer | `success`             | test-writer; in `guided` mode, the design gate first after the plan's first run and after requested changes |
+| plan-writer | `needs-spec-update`   | design gate                                                                                       |
+| test-writer | `success`             | implementor                                                                                       |
+| test-writer | `needs-plan-update`   | plan-writer with the TG gaps (on `needs-spec-update`, design gate), then test-writer              |
+| implementor | `success`, `partial`  | reviewer; it diagnoses failed tasks itself                                                        |
+| implementor | `needs-test-update`   | test-writer with the IG gaps, then implementor                                                    |
+| implementor | `needs-plan-update`   | plan-writer with the IG gaps, then test-writer, then implementor                                  |
+| reviewer    | `approve`             | finish                                                                                            |
+| reviewer    | `request-changes`     | the `Target` stage (`spec` → spec-writer, `plan` → plan-writer, `tests` → test-writer, `code` → implementor) with the `Open` findings, then the later stages whose inputs changed, then reviewer |
+| any         | `failed`              | escalate                                                                                          |
 
-- `success` → step 2.
-- `failed` → stop and tell the user the reason from `Notes`.
+In `guided` mode, a review target of `spec` or `plan` changes the design the
+human approved: show those findings and ask before routing them.
 
-### 2. Plan
+### 2. Design gate
 
-Run `implementation-planner` (prompt **P1**).
+Run it in `guided` mode after the first plan, and in any mode while blocking
+`PG` gaps are open. It is the cheapest point to correct the direction: show the
+summary (template in [reference.md](reference.md)), then ask with AskQuestion:
 
-- `success` → step 3.
-- `needs-spec-update` → spec ↔ plan loop: run `issue-spec-writer` with the
-  planner's gaps (**S2**), then the planner again (**P1**). Repeat while the
-  set of open blocking gap IDs shrinks, at most 2 spec revisions. Then go to
-  step 3 with the remaining gaps: they need a product decision from a human.
-- `failed` → stop.
-
-### 3. Design gate
-
-Run it in `guided` mode, and in any mode while blocking gaps are open. This is
-the cheapest point to correct the direction, so show the human what the
-pipeline is about to build (summary template in [reference.md](reference.md)).
-
-Ask with AskQuestion:
-
-- **Approve and continue**: offer only when no blocking gap is open.
-- **Answer open questions or gaps**: the human types answers through "Other".
-- **Accept the planner's suggested resolutions** for all open gaps.
-- **Request changes**: the human describes them through "Other".
+- **Approve and continue**: offer only when no blocking gap is open;
+- **Answer open questions or gaps**: the human types the answers through
+  "Other";
+- **Accept the plan-writer's suggested resolutions** for all open gaps;
+- **Request changes**: the human describes them through "Other";
 - **Stop**.
 
 Route the answer:
 
-- Product decisions (answers to `Q-n` or `G-n`, changed requirements) →
-  `issue-spec-writer` with the decisions (**S3**) → planner (**P1**).
-- Technical direction ("do not touch the CLI", "reuse X") → planner directly
-  (**P2**).
-- Record each decision verbatim under **Decisions** in the run log.
+- product decisions (answers to `Q` or `PG`, changed requirements) →
+  spec-writer with the decisions, then plan-writer;
+- technical direction ("do not touch the CLI", "reuse X") → plan-writer.
 
-Show the gate again if blocking gaps remain, or if the human requested changes
-in `guided` mode. Never tell a downstream agent to "proceed despite Blocked";
-unblock through the artifacts.
-
-### 4. Tests
-
-Run `tdd-test-writer` (prompt **T1**).
-
-- `success` → step 5.
-- `needs-plan-update` → planner with the plan gaps (**P3**). If the planner
-  returns `needs-spec-update`, run the spec ↔ plan loop and then the design
-  gate, because blocking spec gaps need a human. Then run the test writer
-  again (**T1**).
-- `failed` with a stale plan in `Notes` → planner (**P1**), then the test
-  writer. Any other failure → escalate.
-
-### 5. Implementation
-
-Run `tdd-implementer` (prompt **I1**).
-
-- `success` → step 6.
-- `needs-test-update` → test writer with the gaps (**T2**) → implementer
-  (**I1**).
-- `needs-plan-update` → planner with the gaps (**P3**) → test writer
-  (**T1**) → implementer (**I1**).
-- `partial` → step 6 anyway. The reviewer diagnoses the failed tasks
-  independently and routes them.
-- `failed` with a stale artifact in `Notes` → re-run that stage and every
-  stage after it. Any other failure → escalate.
-
-### 6. Review
-
-Run `code-reviewer` (prompt **R1**, or **R2** for a re-review). Save its full
-final message verbatim to `wiki/reviews/<name>`, overwriting the previous
-round; the reviewer carries fixed findings in its **Resolved** section.
-
-- `approve` → step 7.
-- `request-changes` → read the target in `Next`. It is the earliest stage
-  with open blocker or major findings, in the order spec → plan → tests →
-  code.
-  - In `guided` mode, a `spec` or `plan` target changes the design the human
-    approved: show those findings and ask before routing.
-  - Run the target agent with the findings (**S4**, **P4**, **T3** or
-    **I2**), then every later stage in order, then the reviewer again
-    (**R2**).
-- `failed` → stop.
+Record every decision verbatim under **Decisions** in `run.md`. After the
+routed stages finish, show the gate again while blocking gaps remain, or in
+`guided` mode after the human requested changes; otherwise continue with
+test-writer. Never tell a stage to proceed despite `Blocked`; unblock through
+the artifacts.
 
 ### Loop budgets and escalation
 
-| Loop | Max |
-| ---- | --- |
-| Spec revisions per spec ↔ plan loop | 2 |
-| Tests → plan rounds | 2 |
-| Implementation → tests / plan rounds | 2 |
-| Review fix rounds (3 reviews in total) | 2 |
-| Stage runs in the whole run | 20 |
+| Loop                                           | Max |
+| ---------------------------------------------- | --- |
+| test-writer → plan-writer rounds               | 2   |
+| implementor → test-writer / plan-writer rounds | 2   |
+| Review fix rounds (3 reviews in total)         | 2   |
+| Stage runs in the whole run                    | 20  |
 
 Escalate when a budget is used up, when a round makes no progress (the same
 blocking gap or finding IDs are still open after a fix round), or when a stage
-fails for a reason no other agent can fix. Escalate in both modes: summarize
-what is stuck (IDs, the agents' `Notes`, artifact paths) and ask with
-AskQuestion: give a decision, allow one more round, or stop here. On stop, set
-the run log `Status` to `stopped`, leave every file in place, and go to step
-7 without the commit question.
+fails. Escalate in both modes: summarize what is stuck (IDs, the stage's
+`Notes`, file paths) and ask with AskQuestion: give a decision, allow one more
+round, or stop. On stop, set the `Status` of `run.md` to `stopped`, leave every
+file in place, and go to step 3 without the commit question.
 
-### 7. Finish
+### 3. Finish
 
-1. Fill **Outcome** in the run log and set its `Status`.
-2. Give the user the final summary (template in [reference.md](reference.md)).
-   Lead with the verdict.
-3. Ask with AskQuestion, in both modes:
-   - **Commit** (only when there are uncommitted changes);
-   - **Commit, push and open a PR**;
-   - **Leave as is**.
-4. **Commit.**
-   - If `commit=none`, commit the production and test files first. Use type
-     `fix` for a bug spec and `feat` otherwise, with a lowercase subject from
-     the issue title and a header of at most 50 characters. Put `Closes #<n>`
-     in the body, wrapped at 72 characters.
-   - Then commit the remaining `wiki/` artifacts of this issue as
-     `docs: add pipeline artifacts for #<n>`.
-   - Stage explicit paths only (the report's **Changed files**, the
-     manifest's **Test files**, the `wiki/` artifacts); never `git add -A`.
-   - Never `--no-verify`. If a hook fails, report the output and stop.
-5. **PR.** `git push -u origin <branch>`. Write the body from the PR template
-   in [reference.md](reference.md) to `.git/PR_BODY.md`, run
+1. Fill **Outcome** in `run.md` and set its `Status`.
+2. Give the user the final summary (template in [reference.md](reference.md)),
+   leading with the verdict.
+3. Ask with AskQuestion, in both modes: **Commit** (only when there are
+   uncommitted changes), **Commit, push and open a PR**, or **Leave as is**.
+4. **Commit** by the protocol's **Commits** rules:
+   - with `commit=none`, first the production and test files (the
+     **Changed files** of `implementation.md` and the **Test files** of
+     `tests.md`), typed `fix` for a bug spec and `feat` otherwise, with a
+     subject from the issue title and `Closes #<n>` in the body;
+   - then the issue folder, as `docs: add pipeline artifacts for #<n>`;
+   - if a hook fails, report its output and stop.
+5. **PR.** Run `git push -u origin <branch>`, write the body from the PR
+   template in [reference.md](reference.md) to `.git/PR_BODY.md`, run
    `gh pr create --base <develop|main> --title '<commit header>' --body-file .git/PR_BODY.md`,
    delete the file, and give the user the PR link.
-
-## Additional resources
-
-- Prompt templates, report routing, run log, gate, summary and PR templates:
-  [reference.md](reference.md)

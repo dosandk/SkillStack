@@ -45,20 +45,9 @@ UI import rules and MCP workflow: `.cursor/skills/use-eleks-ui/SKILL.md`.
 ## Delivery pipeline (agents)
 
 `/implement-issue <number>` (`.cursor/skills/implement-issue/SKILL.md`) takes one GitHub
-issue through five subagents in `.cursor/agents/`, each owning one artifact. All artifacts of
-an issue share the file name `<number>-<slug>.md`.
-
-| Stage | Agent | Writes |
-| -------------- | ------------------------ | ---------------------------------- |
-| Spec | `issue-spec-writer` | `wiki/specs/` |
-| Plan | `implementation-planner` | `wiki/plans/` |
-| Tests (red) | `tdd-test-writer` | test files + `wiki/tests/` |
-| Implementation | `tdd-implementer` | source files + `wiki/implementations/` |
-| Review | `code-reviewer` | read-only; saved to `wiki/reviews/` |
-
-The orchestrator runs in the main chat (subagents cannot ask the human), routes gaps and review
-findings back to the stage that owns them, and keeps a run log in `wiki/runs/`. Artifact
-versions are `Revision` numbers; a downstream artifact is stale when its recorded `r<N>` differs.
+issue through the stage agents in `.cursor/agents/`: `spec-writer` → `plan-writer` →
+`test-writer` → `implementor` → `reviewer`. Only that orchestrator invokes them. All artifacts
+of an issue live in `wiki/issues/<number>-<slug>/`.
 
 ## Common commands
 
