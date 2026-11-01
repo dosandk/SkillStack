@@ -440,7 +440,7 @@ Test cases: <total> (<green> green, <red> red, <not run> not run)
 Changed files: <count> (<new> new, <modified> modified)
 Commits: <count, or "none">
 Gaps: <blocking count> blocking, <non-blocking count> non-blocking
-Next: <"review the change and open a PR" | "tdd-test-writer wiki/plans/<file>.md with gaps IG-1" | "implementation-planner wiki/specs/<file>.md with gaps IG-2" | "fix T-n: <reason>">
+Next: <"code-reviewer wiki/implementations/<file>.md" | "tdd-test-writer wiki/plans/<file>.md with gaps IG-1" | "implementation-planner wiki/specs/<file>.md with gaps IG-2" | "fix T-n: <reason>">
 Notes: <one or two sentences: unverified suites, rollout steps, risks, or "none">
 ```
 
