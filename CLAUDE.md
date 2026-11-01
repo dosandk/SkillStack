@@ -69,6 +69,11 @@ staged `client/**` files pre-commit; the `pre-push` hook runs the tests.
 Commit-message format and commit workflow: `.cursor/skills/git-commit/SKILL.md`
 (commitlint allows only `feat` / `fix` / `docs`, header ≤ 50 chars).
 
+GitHub task creation (multi-stage: `task-analyzer` subagent → approval → `publish-github-task`,
+with `subagentStop` and `beforeShellExecution` (`gh` guard) hooks in `.cursor/hooks.json`):
+`.cursor/skills/create-github-task/reference.md`. Hooks need `node` on PATH.
+Hook tests: `npm run test:hooks` (also run by the `pre-push` hook).
+
 ### Functions (run inside `functions/`)
 
 ```bash
