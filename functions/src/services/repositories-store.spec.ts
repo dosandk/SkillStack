@@ -185,6 +185,39 @@ describe('repositoriesStore', () => {
     ]);
   });
 
+  it('should list every skill of a repository with its install count', async () => {
+    skillsCollGet.mockResolvedValue({
+      docs: [
+        { id: 'a', data: () => ({ installCount: 5 }) },
+        { id: 'b', data: () => ({ installCount: 12 }) }
+      ]
+    });
+
+    const result = await repositoriesStore.listSkills('r1');
+
+    expect(result).toEqual([
+      { name: 'a', installCount: 5 },
+      { name: 'b', installCount: 12 }
+    ]);
+    expect(repoDoc).toHaveBeenCalledWith('r1');
+  });
+
+  it('should report 0 installs for a skill document without an installCount', async () => {
+    skillsCollGet.mockResolvedValue({
+      docs: [{ id: 'a', data: () => ({}) }]
+    });
+
+    const result = await repositoriesStore.listSkills('r1');
+
+    expect(result).toEqual([{ name: 'a', installCount: 0 }]);
+  });
+
+  it('should return an empty array when a repository has no skill documents', async () => {
+    skillsCollGet.mockResolvedValue({ docs: [] });
+
+    await expect(repositoriesStore.listSkills('r1')).resolves.toEqual([]);
+  });
+
   it('should report whether a skill exists', async () => {
     skillDocGet.mockResolvedValue({ exists: true });
 

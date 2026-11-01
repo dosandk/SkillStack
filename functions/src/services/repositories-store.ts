@@ -13,6 +13,10 @@ export const repositorySchema = z.object({
 
 export type Repository = z.infer<typeof repositorySchema>;
 
+export const skillDocumentSchema = z.object({
+  installCount: z.number().int().min(0).default(0)
+});
+
 /**
  * Persisted repository shape: the input fields plus the server-managed
  * `totalInstalls` aggregate (sum of every skill's `installCount`). Optional
@@ -81,6 +85,15 @@ export const repositoriesStore = {
     const snapshot = await skillsCollection(repoId).get();
 
     return snapshot.docs.map(doc => doc.id);
+  },
+
+  async listSkills(repoId: string): Promise<SkillWithInstalls[]> {
+    const snapshot = await skillsCollection(repoId).get();
+
+    return snapshot.docs.map(doc => ({
+      name: doc.id,
+      installCount: skillDocumentSchema.parse(doc.data()).installCount
+    }));
   },
 
   async hasSkill(repoId: string, skillName: string): Promise<boolean> {

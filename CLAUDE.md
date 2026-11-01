@@ -42,6 +42,13 @@ UI import rules and MCP workflow: `.cursor/skills/use-eleks-ui/SKILL.md`.
 - `firebase deploy --only functions` is gated by `npm run test:all` (inside `functions/`) via
   the `predeploy` hook in `firebase.json`.
 
+## Delivery pipeline (agents)
+
+`/implement-issue <number>` (`.cursor/skills/implement-issue/SKILL.md`) takes one GitHub
+issue through the stage agents in `.cursor/agents/`: `spec-writer` → `plan-writer` →
+`test-writer` → `implementor` → `reviewer`. Only that orchestrator invokes them. All artifacts
+of an issue live in `wiki/issues/<number>-<slug>/`.
+
 ## Common commands
 
 Run from the **repo root** unless noted.
