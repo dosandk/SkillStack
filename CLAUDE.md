@@ -68,6 +68,8 @@ staged `client/**` files pre-commit; the `pre-push` hook runs the tests.
 
 Commit-message format and commit workflow: `.cursor/skills/git-commit/SKILL.md`
 (commitlint allows only `feat` / `fix` / `docs`, header ≤ 50 chars).
+Read-only review of C#/.NET changes (Standards + Spec review, .NET checklist, smells,
+Critical/High/Medium/Low report): `.cursor/skills/dotnet-code-review/SKILL.md`.
 
 ### Functions (run inside `functions/`)
 
