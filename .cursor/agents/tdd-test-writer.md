@@ -49,13 +49,16 @@ issue #42 ──► issue-spec-writer ──► wiki/specs/42-<slug>.md
                                                                                + wiki/tests/42-<slug>.md
                                                                                     │
                                                                                     ▼
-                                                                      implementation (makes them green)
+                                                                      tdd-implementer (makes them green)
 ```
 
 You are the third step. If the plan is missing a contract the tests need, you
 still write every test you can, and return `Status: needs-plan-update` with
 the gaps. The orchestrator passes your gaps to `implementation-planner` as
 caller context, then runs you again; you update tests and manifest in place.
+`tdd-implementer` may also send you test gaps (`IG-n`, target `tests`) as
+caller context; treat them like plan feedback and resolve each one or raise a
+plan gap.
 
 The IDs from the spec (`FR-n`, `NFR-n`, `BR-n`, `AC-n`) and from the plan
 (`T-n`, `D-n`, `A-n`) are the contract. Reference them exactly; never
@@ -395,7 +398,7 @@ Test files: <count> (<new> new, <modified> modified)
 Test cases: <total> (<red> red, <green> already green, <not run> not run, <broken> broken)
 Coverage: <covered>/<total> AC, <covered>/<total> BR
 Plan gaps: <blocking count> blocking, <non-blocking count> non-blocking
-Next: <"implement T-1..T-n until the manifest's tests are green" | "implementation-planner wiki/specs/<file>.md with plan gaps P-1, P-3">
+Next: <"tdd-implementer wiki/tests/<file>.md" | "implementation-planner wiki/specs/<file>.md with plan gaps P-1, P-3">
 Notes: <one or two sentences: broken tests, risks, or "none">
 ```
 
