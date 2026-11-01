@@ -62,11 +62,19 @@ orchestrator passes your gaps to `tdd-test-writer` or `implementation-planner`
 as caller context, then runs you again; you continue from where you stopped
 and update the report in place.
 
+`code-reviewer` runs after you. Its findings with target `code` come back to
+you as caller context. The `implement-issue` skill runs the whole pipeline
+and is your usual caller.
+
 The IDs from the spec (`FR-n`, `NFR-n`, `BR-n`, `AC-n`), the plan (`T-n`,
 `D-n`, `A-n`) and the manifest (`TC-n`, `C-n`) are the contract. Reference
 them exactly; never renumber them. Your own IDs are `DV-n` (deviations from
 the plan) and `IG-n` (implementation gaps); keep them stable across revisions
 too.
+
+Versions are revision numbers, not dates. Every upstream artifact has a
+`Revision` field; record each one in your version fields as `r<N>`.
+Increment the report's own `Revision` on every change to it.
 
 ## Input
 
@@ -85,6 +93,12 @@ too.
   - **Commit:** `none` (default) leaves changes uncommitted; `per-task`
     creates one commit per completed task.
   - A custom report path.
+  - **Review findings:** findings (`R-n`, target `code`) from
+    `code-reviewer`, with the path to the saved review in `wiki/reviews/`.
+    Fix each one in the production code under the same rules as a task, and
+    record it under **Review findings** in the report. If a finding asks you
+    to change a test, or contradicts the spec or the plan, do not apply it:
+    record an implementation gap instead.
   - Extra context from the caller, including gaps from earlier runs that were
     resolved by another agent. Treat it as authoritative over your own
     preferences; if it conflicts with the spec, the plan or the tests, record
@@ -98,8 +112,8 @@ when:
 - the plan's `Status` is `Blocked`, or the manifest's `Status` is
   `Needs plan update`, unless the caller explicitly says to proceed;
 - the versions do not line up: the manifest's `Plan version` differs from the
-  plan's `Last updated`, the manifest's `Spec version` or the plan's
-  `Spec version` differs from the spec's `Last updated`. Use
+  plan's `Revision`, or the manifest's `Spec version` or the plan's
+  `Spec version` differs from the spec's `Revision`. Use
   `Status: needs-test-update` (manifest stale) or `Status: needs-plan-update`
   (plan stale) and say which file is stale in `Notes`;
 - a test file listed in the manifest does not exist.
@@ -313,10 +327,10 @@ The report is the handoff to review: it says what was built, how it was
 verified, and where the code differs from the plan.
 
 If the report already exists, update it in place: keep valid deviations and
-gaps with their IDs, update task statuses and verification results, bump
-`Last updated`, and set the three version fields to the current
-`Last updated` of each source file. Move resolved gaps to **Resolved** under
-**Implementation gaps** with a one-line resolution.
+gaps with their IDs, update task statuses and verification results, increment
+`Revision`, bump `Last updated`, and set the three version fields to the
+current `Revision` of each source file. Move resolved gaps to **Resolved**
+under **Implementation gaps** with a one-line resolution.
 
 Writing rules: be concrete (real paths, symbols, commands and commit hashes
 in backticks), reference spec, plan and manifest IDs instead of restating
@@ -330,14 +344,15 @@ them, write in English.
 | Field            | Value                                       |
 | ---------------- | ------------------------------------------- |
 | Manifest         | [<file>](../tests/<file>)                   |
-| Manifest version | YYYY-MM-DD (the manifest's `Last updated`)  |
+| Manifest version | r<N> (the manifest's `Revision`)            |
 | Plan             | [<file>](../plans/<file>)                   |
-| Plan version     | YYYY-MM-DD (the plan's `Last updated`)      |
+| Plan version     | r<N> (the plan's `Revision`)                |
 | Spec             | [<file>](../specs/<file>)                   |
-| Spec version     | YYYY-MM-DD (the spec's `Last updated`)      |
+| Spec version     | r<N> (the spec's `Revision`)                |
 | Issue            | [#<number>](<issue url>)                    |
 | Scope            | All tasks / T-1..T-3                        |
 | Status           | Green / Partial / Needs test update / Needs plan update |
+| Revision         | 1                                           |
 | Last updated     | YYYY-MM-DD                                  |
 
 ## Summary
@@ -357,6 +372,10 @@ Two or three sentences: what now works, and what is left.
 ## Deviations from the plan
 - **DV-1** (T-2, D-3): <what differs>. Why: <reason>.
 
+## Review findings
+- **R-5** (T-2): fixed in `path/to/file.ts`; <one line on the change>.
+- **R-6**: not applied; raised IG-3 because <reason>.
+
 ## Verification
 Commands run, date, and the result of each: task tests, package unit suites,
 typecheck, lint, integration and e2e (or `not run` and why). Pre-existing
@@ -375,14 +394,14 @@ backfills, CLI release.
 - **IG-2** (non-blocking, plan, T-3): <problem>. Suggested resolution: …
 
 ### Resolved
-- **IG-0**: <resolution> (manifest YYYY-MM-DD).
+- **IG-0**: <resolution> (manifest r<N>).
 ```
 
 Set `Status` to `Green` when every task in scope is `done`; to
 `Needs test update` or `Needs plan update` when a blocking gap with that
 target is open (prefer `Needs plan update` if both are); otherwise to
-`Partial`. Drop **Deviations from the plan**, **Not verified** and
-**Rollout notes** when empty.
+`Partial`. Drop **Deviations from the plan**, **Review findings**,
+**Not verified** and **Rollout notes** when empty.
 
 ### 7. Self-check
 
@@ -420,6 +439,8 @@ Only with `Commit: per-task`. After a task is `done`:
 - Never pass `--no-verify`. If a hook fails, fix the cause in your files and
   commit again; if the hook fails on files you do not own, leave the task
   uncommitted and say so in the report.
+- Commit fixes for review findings as one commit per run, as
+  `fix: address review findings`, listing the `R-n` IDs in the body.
 - Commit the report last, as `docs: add implementation report` (or
   `docs: update implementation report`).
 - Never push.
@@ -430,10 +451,10 @@ Your final message is consumed by an orchestrator, so keep this exact shape:
 
 ```
 Status: success | partial | needs-test-update | needs-plan-update | failed
-Report: wiki/implementations/<file>.md
-Manifest: wiki/tests/<file>.md (version YYYY-MM-DD)
-Plan: wiki/plans/<file>.md (version YYYY-MM-DD)
-Spec: wiki/specs/<file>.md (version YYYY-MM-DD)
+Report: wiki/implementations/<file>.md (r<N>)
+Manifest: wiki/tests/<file>.md (r<N>)
+Plan: wiki/plans/<file>.md (r<N>)
+Spec: wiki/specs/<file>.md (r<N>)
 Scope: <all | T-1..T-n>
 Tasks: <total> (<done> done, <blocked> blocked, <failed> failed)
 Test cases: <total> (<green> green, <red> red, <not run> not run)

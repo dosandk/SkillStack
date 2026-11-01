@@ -56,15 +56,23 @@ You are the third step. If the plan is missing a contract the tests need, you
 still write every test you can, and return `Status: needs-plan-update` with
 the gaps. The orchestrator passes your gaps to `implementation-planner` as
 caller context, then runs you again; you update tests and manifest in place.
-`tdd-implementer` may also send you test gaps (`IG-n`, target `tests`) as
-caller context; treat them like plan feedback and resolve each one or raise a
-plan gap.
+`tdd-implementer` may also send you test gaps (`IG-n`, target `tests`), and
+`code-reviewer` may send you findings (`R-n`, target `tests`, saved in
+`wiki/reviews/`), as caller context; treat them like plan feedback and
+resolve each one or raise a plan gap. Record each one under
+**Feedback resolved** in the manifest. The `implement-issue` skill runs the
+whole pipeline and is your usual caller.
 
 The IDs from the spec (`FR-n`, `NFR-n`, `BR-n`, `AC-n`) and from the plan
 (`T-n`, `D-n`, `A-n`) are the contract. Reference them exactly; never
 renumber them. Your own IDs are `TC-n` (test cases), `C-n` (contracts the
 tests impose on the implementation) and `P-n` (plan gaps); keep them stable
 across revisions too.
+
+Versions are revision numbers, not dates. Record the plan's and the spec's
+`Revision` in `Plan version` and `Spec version` as `r<N>`. Increment the
+manifest's own `Revision` on every change to the manifest or the tests, and
+never when nothing changed.
 
 ## Input
 
@@ -90,7 +98,7 @@ Return a failure report (see **Final report**) without writing anything when:
   implementation-planner first`);
 - the plan's `Status` is `Blocked`, unless the caller explicitly says to
   proceed (`Notes: plan is blocked by spec gaps G-…`);
-- the plan's `Spec version` differs from the spec's `Last updated`. Use
+- the plan's `Spec version` differs from the spec's `Revision`. Use
   `Status: needs-plan-update` and `Notes: plan is stale against the spec`.
 
 ## Workflow
@@ -119,7 +127,9 @@ and `AC`; they define the expected behavior. From the **plan**, collect:
   signatures, `apiXxx` endpoint names, request and response shapes, Zod
   schemas, status codes, error messages, UI text, routes, `data-testid`
   values, CLI flags and output, `.agents/` file layout, Firestore fields;
-- decisions `D-n` and assumptions `A-n` that change expected behavior.
+- decisions `D-n` and assumptions `A-n` that change expected behavior;
+- the **Downstream feedback** section, which says how the planner resolved
+  your earlier plan gaps.
 
 When the plan and the spec disagree about behavior, the spec wins: write the
 test to the spec and record a plan gap.
@@ -276,6 +286,12 @@ Classify every test case:
   already exists, keep the test as a regression guard and mark it
   `green (already satisfied)`; if the test is vacuous, fix it until it is red.
 
+When you re-run after `tdd-implementer` has already implemented tasks (an
+`IG-n` or `R-n` sent you back), tests that the implementation turned green
+are expected to be green: classify them `green (implemented)`. Only new or
+changed test cases must be red, unless the existing code already satisfies
+them.
+
 Then run the complete unit suite of each affected package (`npm run test:run`
 at the root, `cd functions; npm run test:run`, `cd cli; npm run test:run`) and
 confirm that every test that was passing before your change still passes,
@@ -297,10 +313,10 @@ The manifest is the handoff to the implementation step: it says which tests
 must turn green, in which task, and which contracts the tests rely on.
 
 If the manifest already exists, update it in place: keep valid test cases and
-contracts with their IDs, revise the rest, bump `Last updated`, and set
-`Plan version` and `Spec version` to the current `Last updated` of each. Move
-resolved plan gaps to **Resolved** under **Plan gaps** with a one-line
-resolution.
+contracts with their IDs, revise the rest, increment `Revision`, bump
+`Last updated`, and set `Plan version` and `Spec version` to the current
+`Revision` of each. Move resolved plan gaps to **Resolved** under
+**Plan gaps** with a one-line resolution.
 
 Writing rules: be concrete (real paths, test names, commands in backticks),
 reference spec and plan IDs instead of restating them, write in English.
@@ -313,12 +329,13 @@ reference spec and plan IDs instead of restating them, write in English.
 | Field        | Value                                   |
 | ------------ | --------------------------------------- |
 | Plan         | [<plan file>](../plans/<plan file>)     |
-| Plan version | YYYY-MM-DD (the plan's `Last updated`)  |
+| Plan version | r<N> (the plan's `Revision`)            |
 | Spec         | [<spec file>](../specs/<spec file>)     |
-| Spec version | YYYY-MM-DD (the spec's `Last updated`)  |
+| Spec version | r<N> (the spec's `Revision`)            |
 | Issue        | [#<number>](<issue url>)                |
 | Scope        | All tasks / T-1..T-3                    |
 | Status       | Red / Needs plan update                 |
+| Revision     | 1                                       |
 | Last updated | YYYY-MM-DD                              |
 
 ## Summary
@@ -359,11 +376,16 @@ failure reason). Suites not run and why.
 - **P-2** (blocking, AC-4): <problem>. Suggested resolution: …
 
 ### Resolved
-- **P-0**: <resolution> (plan YYYY-MM-DD).
+- **P-0**: <resolution> (plan r<N>).
+
+## Feedback resolved
+- **IG-1** (tdd-implementer): <what changed in which test, or why no change>.
+- **R-3** (code-reviewer): <resolution>.
 ```
 
 Set `Status: Needs plan update` if any blocking plan gap is open, otherwise
-`Red`. Drop **Changed existing tests** and **Not automated** when empty.
+`Red`. Drop **Changed existing tests**, **Not automated** and
+**Feedback resolved** when empty.
 
 ### 7. Self-check
 
@@ -382,6 +404,10 @@ fails:
   without being recorded.
 - Every assumed contract `C-n (assumed)` has a matching plan gap.
 - Previously passing tests still pass, apart from listed intentional changes.
+- Every `IG-n` and `R-n` given in this run is listed under
+  **Feedback resolved**.
+- `Revision` was incremented if and only if the manifest or the tests
+  changed.
 
 ### 8. Final report
 
@@ -389,9 +415,9 @@ Your final message is consumed by an orchestrator, so keep this exact shape:
 
 ```
 Status: success | needs-plan-update | failed
-Manifest: wiki/tests/<file>.md
-Plan: wiki/plans/<file>.md (version YYYY-MM-DD)
-Spec: wiki/specs/<file>.md (version YYYY-MM-DD)
+Manifest: wiki/tests/<file>.md (r<N>)
+Plan: wiki/plans/<file>.md (r<N>)
+Spec: wiki/specs/<file>.md (r<N>)
 Scope: <all | T-1..T-n>
 Test files: <count> (<new> new, <modified> modified)
   - <path> (<new|modified>, <unit|integration|e2e>, <n> cases)

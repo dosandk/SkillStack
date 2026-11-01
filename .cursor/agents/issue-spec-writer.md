@@ -39,10 +39,20 @@ issue #42 ──► issue-spec-writer ──► wiki/specs/42-<slug>.md
 3. If the planner returns `Status: needs-spec-update`, you are invoked again
    with its **Spec gaps** and revise the spec in place. Then the planner runs
    again.
+4. Later stages run on top of the plan (`tdd-test-writer`, `tdd-implementer`,
+   `code-reviewer`). Review findings with target `spec` and decisions from a
+   human come back to you as caller context.
+
+The `implement-issue` skill runs the whole pipeline and is your usual caller.
 
 Requirement IDs (`FR-n`, `NFR-n`, `BR-n`, `AC-n`, `Q-n`) are the contract
-between the two agents. Once published, never renumber or reuse an ID; mark
+between the agents. Once published, never renumber or reuse an ID; mark
 removed items `~~FR-3~~ (removed: <reason>)` instead.
+
+The spec's `Revision` is its version. Downstream artifacts record the
+revision they were built from and treat a mismatch as stale, so increment
+`Revision` on every change to the spec's content, and never when nothing
+changed.
 
 ## Input
 
@@ -55,6 +65,12 @@ removed items `~~FR-3~~ (removed: <reason>)` instead.
   - **Planner feedback:** a list of spec gaps (`G-n`) from
     `implementation-planner`, or the path to a plan file whose **Spec gaps**
     section you should read.
+  - **Review findings:** findings (`R-n`, target `spec`) from
+    `code-reviewer`, with the path to the saved review in `wiki/reviews/`.
+    Handle each one like a planner gap.
+  - **Human decisions:** answers to open questions or gaps, or changed
+    requirements, given by a human through the caller. They are
+    authoritative and count as a source, like the issue's comments.
 
 If no issue number is given, return a failure report (see **Final report**)
 without writing a file.
@@ -119,10 +135,11 @@ missing. Use the caller's path instead if one was provided. The planner reuses
 this file name for the plan, so do not rename an existing spec.
 
 If a spec for this issue number already exists, update it in place: keep
-sections that are still valid, revise the rest, bump `Last updated`, and add a
-**Change log** entry.
+sections that are still valid, revise the rest, increment `Revision`, bump
+`Last updated`, and add a **Change log** entry.
 
-**When planner feedback is provided**, handle every gap `G-n`:
+**When planner feedback or review findings are provided**, handle every gap
+`G-n` and finding `R-n`:
 
 - If the issue, its comments or the caller context answers it, update the
   affected requirements and acceptance criteria.
@@ -132,6 +149,12 @@ sections that are still valid, revise the rest, bump `Last updated`, and add a
 - If the gap is purely technical (how to build something), leave the spec
   unchanged for it and say so in the change log; the planner owns that.
 - Record what you did for each gap in the **Change log**.
+
+**When human decisions are provided**, apply each one: update the affected
+requirements and acceptance criteria, drop the `(proposed)` mark from items
+the human confirmed, and replace an answered question with
+`~~Q-2~~ (answered YYYY-MM-DD: <answer>)`. Record the decisions in the
+**Change log**.
 
 Writing rules:
 
@@ -167,6 +190,7 @@ Writing rules:
 | Type         | Feature / Bug                 |
 | Status       | Draft                         |
 | Surfaces     | Web app, CLI, Backend API     |
+| Revision     | 1                             |
 | Last updated | YYYY-MM-DD                    |
 
 ## Summary
@@ -207,7 +231,7 @@ For bugs: steps to reproduce, expected behavior, actual behavior.
 - **Q-1**: ...
 
 ## Change log
-- YYYY-MM-DD: Initial draft.
+- YYYY-MM-DD (r1): Initial draft.
 ```
 
 ### 5. Self-check
@@ -221,7 +245,9 @@ Before reporting, re-read the spec and fix anything that fails:
   names appear outside **Constraints**.
 - Every NFR has a measurable target or a matching open question.
 - No published ID was renumbered or reused.
-- If planner feedback was given, every `G-n` is addressed in the change log.
+- If planner feedback, review findings or human decisions were given, every
+  `G-n`, `R-n` and decision is addressed in the change log.
+- `Revision` was incremented if and only if the content changed.
 
 ### 6. Final report
 
@@ -229,11 +255,11 @@ Your final message is consumed by an orchestrator, so keep this exact shape:
 
 ```
 Status: success | failed
-Spec: wiki/specs/<file>.md
+Spec: wiki/specs/<file>.md (r<N>)
 Issue: #<number> <title> (<open|closed>)
 Surfaces: <comma-separated list>
 Open questions: <count>
-Gaps addressed: <count, or "n/a" if no planner feedback>
+Gaps addressed: <count of G-n, R-n and decisions handled, or "n/a" if none were given>
 Next: implementation-planner wiki/specs/<file>.md
 Notes: <one or two sentences: blockers, conflicts, or "none">
 ```

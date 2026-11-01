@@ -42,6 +42,24 @@ UI import rules and MCP workflow: `.cursor/skills/use-eleks-ui/SKILL.md`.
 - `firebase deploy --only functions` is gated by `npm run test:all` (inside `functions/`) via
   the `predeploy` hook in `firebase.json`.
 
+## Delivery pipeline (agents)
+
+`/implement-issue <number>` (`.cursor/skills/implement-issue/SKILL.md`) takes one GitHub
+issue through five subagents in `.cursor/agents/`, each owning one artifact. All artifacts of
+an issue share the file name `<number>-<slug>.md`.
+
+| Stage | Agent | Writes |
+| -------------- | ------------------------ | ---------------------------------- |
+| Spec | `issue-spec-writer` | `wiki/specs/` |
+| Plan | `implementation-planner` | `wiki/plans/` |
+| Tests (red) | `tdd-test-writer` | test files + `wiki/tests/` |
+| Implementation | `tdd-implementer` | source files + `wiki/implementations/` |
+| Review | `code-reviewer` | read-only; saved to `wiki/reviews/` |
+
+The orchestrator runs in the main chat (subagents cannot ask the human), routes gaps and review
+findings back to the stage that owns them, and keeps a run log in `wiki/runs/`. Artifact
+versions are `Revision` numbers; a downstream artifact is stale when its recorded `r<N>` differs.
+
 ## Common commands
 
 Run from the **repo root** unless noted.

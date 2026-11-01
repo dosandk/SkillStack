@@ -42,10 +42,19 @@ still write the best plan you can, mark it `Blocked`, and return
 `issue-spec-writer` with your gaps as feedback and runs you again; you update
 the plan in place.
 
+Later stages build on your plan: `tdd-test-writer`, `tdd-implementer` and
+`code-reviewer`. Their problems with the plan come back to you as
+**downstream feedback** (`P-n`, `IG-n` or `R-n` with target `plan`). The
+`implement-issue` skill runs the whole pipeline and is your usual caller.
+
 The spec's IDs (`FR-n`, `NFR-n`, `BR-n`, `AC-n`, `Q-n`) are the contract.
 Reference them exactly; never renumber them. Your own IDs are `D-n`
 (decisions), `A-n` (assumptions), `T-n` (tasks) and `G-n` (spec gaps); keep
 them stable across revisions too.
+
+Versions are revision numbers, not dates. The spec's `Revision` is its
+version; record it in `Spec version` as `r<N>`. Increment the plan's own
+`Revision` on every change to its content, and never when nothing changed.
 
 ## Input
 
@@ -56,6 +65,11 @@ them stable across revisions too.
   - Extra context from the caller (for example, "must ship in one PR",
     "do not touch the CLI"). Treat it as authoritative over your own
     preferences; if it conflicts with the spec, record a spec gap.
+  - **Downstream feedback:** plan gaps (`P-n`) from `tdd-test-writer`,
+    implementation gaps (`IG-n`, target `plan`) from `tdd-implementer`, or
+    review findings (`R-n`, target `plan`) from `code-reviewer`, with the
+    path to the file that describes them (`wiki/tests/`,
+    `wiki/implementations/`, `wiki/reviews/`).
 
 If no spec is given or found, return a failure report (see **Final report**)
 with `Notes: no spec found; run issue-spec-writer first`. Do not plan from the
@@ -75,8 +89,8 @@ issue alone.
 
 ### 1. Read the spec
 
-Read the whole spec. Note its `Last updated` date, every requirement ID,
-every acceptance criterion, constraints and open questions.
+Read the whole spec. Note its `Revision`, every requirement ID, every
+acceptance criterion, constraints and open questions.
 
 If the spec has no Requirements or no Acceptance criteria section, return a
 failure report: the spec is not plannable.
@@ -151,11 +165,22 @@ becomes `wiki/plans/42-add-search.md`. Create `wiki/plans/` if it is missing.
 Use the caller's path instead if one was provided.
 
 If the plan already exists, update it in place: keep valid decisions and
-tasks with their IDs, revise the rest, bump `Last updated`, and set
-`Spec version` to the spec's current `Last updated`. If the spec changed since
-the plan's `Spec version`, re-check every task against the new requirements.
-Move resolved gaps to **Resolved** under **Spec gaps** with a one-line
-resolution.
+tasks with their IDs, revise the rest, increment `Revision`, bump
+`Last updated`, and set `Spec version` to the spec's current `Revision`. If
+the spec changed since the plan's `Spec version`, re-check every task against
+the new requirements. Move resolved gaps to **Resolved** under **Spec gaps**
+with a one-line resolution.
+
+**When downstream feedback is provided**, handle every item:
+
+- If the plan is missing a contract, a task or a decision, add or revise it
+  (`D-n`, `T-n`, task **Steps**), following the same rules as a first draft.
+- If the item is really a spec problem (behavior the spec does not define),
+  record a spec gap instead of deciding the behavior yourself.
+- If the item is wrong (the plan already answers it), leave the plan
+  unchanged for it and say where the answer is.
+- Record each item under **Downstream feedback** with its resolution. The
+  agent that raised it reads that section on its next run.
 
 Task rules:
 
@@ -191,10 +216,11 @@ Writing rules:
 | Field        | Value                                         |
 | ------------ | --------------------------------------------- |
 | Spec         | [<spec file>](../specs/<spec file>)           |
-| Spec version | YYYY-MM-DD (the spec's `Last updated`)        |
+| Spec version | r<N> (the spec's `Revision`)                  |
 | Issue        | [#<number>](<issue url>)                      |
 | Status       | Ready / Blocked                               |
 | Packages     | functions, shared, client, cli, e2e           |
+| Revision     | 1                                             |
 | Last updated | YYYY-MM-DD                                    |
 
 ## Approach
@@ -270,10 +296,15 @@ steps.
 - **G-2** (non-blocking, Q-1): Assumed A-1. Confirm or override.
 
 ### Resolved
-- **G-0**: <resolution> (spec YYYY-MM-DD).
+- **G-0**: <resolution> (spec r<N>).
+
+## Downstream feedback
+- **P-1** (tdd-test-writer): <resolution, e.g. "contract pinned in D-4 and T-2 Steps">.
+- **R-2** (code-reviewer): <resolution>.
 ```
 
-Set `Status: Blocked` if any blocking gap is open, otherwise `Ready`.
+Set `Status: Blocked` if any blocking gap is open, otherwise `Ready`. Drop
+**Downstream feedback** when no feedback was ever given.
 
 ### 6. Self-check
 
@@ -290,6 +321,9 @@ Before reporting, re-read the plan and fix anything that fails:
   `backendService` before any client or CLI task uses them.
 - No ADR is contradicted without being flagged in **Risks** and
   **Spec gaps**.
+- Every downstream feedback item given in this run is listed under
+  **Downstream feedback** with a resolution.
+- `Revision` was incremented if and only if the content changed.
 - `Status` matches the open blocking gaps.
 
 ### 7. Final report
@@ -298,8 +332,8 @@ Your final message is consumed by an orchestrator, so keep this exact shape:
 
 ```
 Status: success | needs-spec-update | failed
-Plan: wiki/plans/<file>.md
-Spec: wiki/specs/<file>.md (version YYYY-MM-DD)
+Plan: wiki/plans/<file>.md (r<N>)
+Spec: wiki/specs/<file>.md (r<N>)
 Packages: <comma-separated list>
 Tasks: <count>
 Spec gaps: <blocking count> blocking, <non-blocking count> non-blocking

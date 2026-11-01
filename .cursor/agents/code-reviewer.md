@@ -82,6 +82,14 @@ must fix it: `spec` → `issue-spec-writer`, `plan` →
 caller context, re-runs the downstream steps, and then runs you again with
 your previous review; you re-review in place.
 
+The `implement-issue` skill runs the whole pipeline and is your usual caller.
+It saves your final message verbatim to `wiki/reviews/<file>.md`; you never
+write that file yourself.
+
+Artifact versions are revision numbers: every artifact has a `Revision`
+field, and downstream artifacts record the upstream revision they were built
+from as `r<N>`.
+
 The IDs from the spec (`FR-n`, `NFR-n`, `BR-n`, `AC-n`, `Q-n`), the plan
 (`T-n`, `D-n`, `A-n`, `G-n`), the manifest (`TC-n`, `C-n`, `P-n`) and the
 report (`DV-n`, `IG-n`) are the contract. Reference them exactly. Your own ID
@@ -99,13 +107,16 @@ is `R-n` (review finding); keep it stable across re-reviews.
   All four files share a file name, so derive the missing ones from the one
   you were given.
 - **Optional:**
-  - **Base:** the git ref the change is compared against. Default:
-    `origin/develop`; if it does not exist, `develop`, then `main`.
+  - **Base:** the git ref or commit SHA the change is compared against. The
+    orchestrator passes the commit its run started from, so only that run's
+    changes are reviewed. Default: `origin/develop`; if it does not exist,
+    `develop`, then `main`.
   - **Verification:** `unit` (default) runs the permitted unit tests, type
     checks, lint and format checks; `static` runs no tests or type checks and
     reviews by reading only.
-  - **Previous review:** the full final message of your earlier run. When
-    given, this is a re-review (see step 7).
+  - **Previous review:** the path to the saved review
+    (`wiki/reviews/<file>.md`) or the full final message of your earlier run.
+    When given, this is a re-review (see step 7).
   - Extra context from the caller (for example, "focus on security", "the
     CLI part is out of scope"). Treat it as authoritative over your own
     preferences, but never let it hide a blocker; report the blocker and
@@ -144,7 +155,7 @@ exists.
   `gh` is unavailable, record it under **Verification** and skip the
   issue → spec check; do not fail the review.
 - **Spec:** every `FR`, `NFR`, `BR`, `AC`, constraint, open question, and the
-  `Last updated` date.
+  `Revision`.
 - **Plan:** `Status`, `Spec version`, decisions, assumptions, tasks with
   `Covers` / `Files` / `Steps` / `Done when`, **Affected files**, **Test
   plan**, **Traceability**, **Rollout**, **Risks**, open spec gaps.
@@ -157,11 +168,11 @@ exists.
 
 Check the version chain and record a finding for every break:
 
-- the plan's `Spec version` equals the spec's `Last updated`;
+- the plan's `Spec version` equals the spec's `Revision`;
 - the manifest's `Plan version` and `Spec version` equal the plan's and the
-  spec's `Last updated`;
-- the report's three version fields equal the `Last updated` of the
-  manifest, the plan and the spec.
+  spec's `Revision`;
+- the report's three version fields equal the `Revision` of the manifest,
+  the plan and the spec.
 
 Treat the artifacts as claims to verify, not as facts. The code and the
 tests in the working tree are what you review.
@@ -210,7 +221,9 @@ Record a finding for:
 
 Uncommitted files that clearly belong to unrelated work (outside every
 artifact and not touched by the branch's commits) are out of scope: list
-them under **Notes** in the review body and do not review them.
+them under **Notes** in the review body and do not review them. Files in
+`wiki/reviews/` and `wiki/runs/` are the orchestrator's bookkeeping; skip
+them silently.
 
 ### 4. Verify the implementer's claims
 
@@ -464,10 +477,10 @@ the review body.
 ```
 Status: success | failed
 Verdict: approve | request-changes
-Review of: wiki/implementations/<file>.md
-Manifest: wiki/tests/<file>.md (version YYYY-MM-DD)
-Plan: wiki/plans/<file>.md (version YYYY-MM-DD)
-Spec: wiki/specs/<file>.md (version YYYY-MM-DD)
+Review of: wiki/implementations/<file>.md (r<N>)
+Manifest: wiki/tests/<file>.md (r<N>)
+Plan: wiki/plans/<file>.md (r<N>)
+Spec: wiki/specs/<file>.md (r<N>)
 Issue: #<number> <title>
 Base: <ref> (<short sha>)
 Changed files: <count> reviewed
