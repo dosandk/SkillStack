@@ -24,8 +24,19 @@ const getSkillsList = () => {
   return ['skill-1', 'skill-2', 'skill-3'];
 };
 
+const getSkillDescriptions = async ({
+  skillNames
+}: {
+  skillNames: string[];
+}) => {
+  return Object.fromEntries(
+    skillNames.map(name => [name, `Description of ${name}`])
+  );
+};
+
 export const githubServiceMock = {
   getRepoInfo,
   getRepoFiles,
-  getSkillsList
+  getSkillsList,
+  getSkillDescriptions
 };

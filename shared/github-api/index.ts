@@ -1,6 +1,7 @@
 import { getRepoInfo } from './get-repo-info';
 import { getSkillsList } from './get-skills-list';
 import { getRepoFiles } from './get-repo-files';
+import { getSkillDescriptions } from './get-skill-descriptions';
 
 export { GithubApiError } from './request';
 
@@ -8,12 +9,14 @@ interface GithubService {
   getRepoInfo: typeof getRepoInfo;
   getRepoFiles: typeof getRepoFiles;
   getSkillsList: typeof getSkillsList;
+  getSkillDescriptions: typeof getSkillDescriptions;
 }
 
 let githubService: GithubService = {
   getRepoInfo,
   getRepoFiles,
-  getSkillsList
+  getSkillsList,
+  getSkillDescriptions
 };
 
 // TODO: rethink this

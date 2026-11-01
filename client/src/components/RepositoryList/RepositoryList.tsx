@@ -4,6 +4,7 @@ import {
   ErrorState,
   List,
   ListItem,
+  ListItemButton,
   ListItemText,
   NoDataState,
   Skeleton,
@@ -12,11 +13,13 @@ import {
 import FolderIcon from '@mui/icons-material/Folder';
 
 import { useRepositories } from '../../hooks/useRepositories';
+import { useRouterLinkProps } from '../../hooks/useRouterLinkProps';
 
 const SKELETON_ROW_COUNT = 4;
 
 export function RepositoryList() {
   const { repositories, isLoading, error } = useRepositories();
+  const getLinkProps = useRouterLinkProps();
 
   if (isLoading) {
     return (
@@ -61,6 +64,7 @@ export function RepositoryList() {
           <ListItem
             key={repository.id}
             data-testid="repository-item"
+            disablePadding
             secondaryAction={
               <Chip
                 label={`${skillCount} skills`}
@@ -70,13 +74,21 @@ export function RepositoryList() {
               />
             }
           >
-            <Avatar sx={{ mr: 2 }}>
-              <FolderIcon />
-            </Avatar>
-            <ListItemText
-              primary={repository.repoSlug}
-              secondary={repository.owner}
-            />
+            <ListItemButton
+              component="a"
+              {...getLinkProps(
+                `/repositories/${encodeURIComponent(repository.id)}`
+              )}
+              sx={{ pr: 14 }}
+            >
+              <Avatar sx={{ mr: 2 }}>
+                <FolderIcon />
+              </Avatar>
+              <ListItemText
+                primary={repository.repoSlug}
+                secondary={repository.owner}
+              />
+            </ListItemButton>
           </ListItem>
         );
       })}

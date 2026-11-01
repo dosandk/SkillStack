@@ -19,9 +19,12 @@ export async function clearRepositories(): Promise<void> {
 
 // NOTE: seed via the real apiStoreRepoInfo endpoint (node-side fetch, no CORS)
 // so the write path matches production instead of poking Firestore directly.
+// Returns the Firestore document ids, in the order of the fixtures.
 export async function seedRepositories(
   fixtures: RepositoryFixture[]
-): Promise<void> {
+): Promise<string[]> {
+  const ids: string[] = [];
+
   for (const fixture of fixtures) {
     const response = await fetch(`${FUNCTIONS_BASE_URL}/apiStoreRepoInfo`, {
       method: 'POST',
@@ -34,5 +37,36 @@ export async function seedRepositories(
         `Failed to seed repository "${fixture.repoSlug}" (${response.status} ${response.statusText})`
       );
     }
+
+    const { id } = (await response.json()) as { id: string };
+
+    ids.push(id);
+  }
+
+  return ids;
+}
+
+// NOTE: records one install of each listed skill through the real
+// apiTrackSkillsInstall endpoint, so install counts follow the production
+// write path. Call it once per install to build up a count.
+export async function trackInstalls(
+  fixture: RepositoryFixture,
+  skills: string[]
+): Promise<void> {
+  const response = await fetch(`${FUNCTIONS_BASE_URL}/apiTrackSkillsInstall`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      repoSlug: fixture.repoSlug,
+      owner: fixture.owner,
+      defaultBranch: fixture.defaultBranch,
+      skills
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to track installs for "${fixture.repoSlug}" (${response.status} ${response.statusText})`
+    );
   }
 }
