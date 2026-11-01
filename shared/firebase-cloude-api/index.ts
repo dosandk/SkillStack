@@ -27,6 +27,16 @@ interface StoreRepoInfoPayload {
 
 type GetRepositoriesListResponse = { repositories: RepositoryWithId[] };
 
+export interface RepositorySkill {
+  name: string;
+  installCount: number;
+}
+
+export interface GetRepositoryDetailsResponse {
+  repository: RepositoryWithId;
+  skills: RepositorySkill[];
+}
+
 type TrackSkillsInstallPayload = {
   owner: string;
   repoSlug: string;
@@ -88,6 +98,14 @@ export class BackendService {
 
   async getRepositoriesList(): Promise<GetRepositoriesListResponse> {
     return this.request<GetRepositoriesListResponse>('apiGetRepositoriesList');
+  }
+
+  async getRepositoryDetails(
+    id: string
+  ): Promise<GetRepositoryDetailsResponse> {
+    return this.request<GetRepositoryDetailsResponse>(
+      `apiGetRepositoryDetails?id=${encodeURIComponent(id)}`
+    );
   }
 
   async deleteRepoInfo(repoUrl: string): Promise<unknown> {
