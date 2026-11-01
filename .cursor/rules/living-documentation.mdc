@@ -1,0 +1,58 @@
+---
+description: Keep docs in sync with code. Update affected documentation in the same change when behavior, contracts, config, commands, structure or architecture change.
+alwaysApply: true
+---
+
+# Living Documentation
+
+Docs describe the **current, verifiable** state of the repo. If a change makes a doc inaccurate, fix the doc in the same change. Never leave it for a follow-up.
+
+## Workflow
+
+1. Identify the observable or structural effect of the change (not just file names).
+2. Find the existing source of truth. Do not create new doc files if one already exists.
+3. Update it next to the code. Link to canonical content instead of copying it.
+4. If nothing documented is affected, do not touch docs.
+
+## Where to update
+
+| Change | Source of truth |
+| --- | --- |
+| Commands, scripts, tooling, aliases, package layout | `CLAUDE.md`, `readme.md`, `cli/readme.md`, `CONTRIBUTING.md` |
+| User-visible behavior, CLI flags | `readme.md`, `cli/readme.md` |
+| Config, env vars, `appsettings*.json` (use safe sample values, never secrets) | `readme.md`, `CLAUDE.md` |
+| Public API endpoints, schemas, status codes, auth | API docs / OpenAPI source if present, otherwise `readme.md` |
+| Architecture, layering, data ownership, major dependencies | `wiki/architectural-decision-records/` (see ADRs) |
+| CI/CD, deploy, emulators, containers | `CLAUDE.md`, `readme.md` |
+| Rules, skills, dev process | `CLAUDE.md`, `CONTRIBUTING.md` |
+
+## ADRs
+
+- Only for a **material decision** with real trade-offs (persistence, service boundaries, security, integration protocol). Not for implementation details.
+- Add `NNN-adr.md` in `wiki/architectural-decision-records/` and a row in `index.md`.
+- Include context, decision, alternatives, consequences, status. Never mark an unapproved decision `Accepted`.
+- Do not rewrite accepted ADRs. Add a superseding ADR and cross-link both.
+
+## Before finishing
+
+- Names, paths, commands and config keys in docs match the code.
+- Verify changed commands or examples where feasible; otherwise say what was not verified.
+- Fix links broken by renamed, moved or removed files.
+- Do not hand-edit generated or vendored docs; edit their source.
+- In the summary, name the docs updated, or state in one line why none were needed.
+
+## Skip
+
+Skip documentation updates for internal refactors,
+test-only changes, formatting, and comment-only edits
+when existing documentation remains accurate.
+
+## Examples
+
+<!-- ❌ BAD: Added a new `dotnet test --filter`
+     command to the developer workflow,
+     but did not update the README. -->
+
+<!-- ✅ GOOD: Added the command and documented
+     its usage in the README as part of
+     the same change. -->
