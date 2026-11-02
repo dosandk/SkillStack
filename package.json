@@ -11,6 +11,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:skills": "node --test \".agents/skills/**/*.spec.mjs\"",
     "pre-commit": "lint-staged",
     "pre-push": "npm run test",
     "lint:prettier": "prettier client/src --write",
